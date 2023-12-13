@@ -1,0 +1,1 @@
+This repo implements the RL based slate recommendation on the MIND Dataset.
