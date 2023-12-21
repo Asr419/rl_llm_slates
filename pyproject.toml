@@ -12,6 +12,8 @@ plotly = "^5.18.0"
 python-dotenv = "^1.0.0"
 nbformat = "^5.9.2"
 torch = "1.13.1"
+pytest = "^7.4.3"
+pyarrow = "^14.0.2"
 
 
 [tool.poetry.group.dev.dependencies]
