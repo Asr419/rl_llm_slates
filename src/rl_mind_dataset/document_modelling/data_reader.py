@@ -57,7 +57,6 @@ class DatasetReader:
         df = pd.read_feather(
             self.get_data_path() / Path("MINDlarge_train/category.feather")
         )
-        print("before")
 
         return df
 

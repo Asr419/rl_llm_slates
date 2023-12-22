@@ -1,6 +1,7 @@
 import abc
 import os
 from pathlib import Path
+import random
 from typing import Any, Type, TypeVar
 
 
@@ -30,6 +31,10 @@ class AbstractUserState(nn.Module, metaclass=abc.ABCMeta):
         """Generate the user hidden state by sampling a topic of interest"""
         pass
 
+    def _user_candidate_items(self, **kwds: Any) -> torch.Tensor:
+        """Generate the user candidate items"""
+        pass
+
     @abc.abstractmethod
     def update_state(self, selected_doc_feature: torch.Tensor) -> None:
         """Update the user's observable state"""
@@ -41,6 +46,7 @@ class UserState(AbstractUserState):
         super().__init__(**kwds)
         self.DATA_PATH = Path.home() / Path(os.environ.get("DATA_PATH"))
         self.dataset_reader = DatasetReader()
+        self.random_index = None
 
         self.dataset_interaction_path = self.DATA_PATH / Path(
             "MINDlarge_train/interaction.feather"
@@ -53,10 +59,27 @@ class UserState(AbstractUserState):
 
     def _generate_observable_state(self, **kwds: Any) -> torch.Tensor:
         num_rows = len(self.category_data)
-        random_index = np.random.randint(0, num_rows)
-        user_state = torch.Tensor(self.category_data["category_list"].loc[random_index])
+        self.random_index = np.random.randint(0, num_rows)
+        user_state = torch.Tensor(
+            self.category_data["category_list"].loc[self.random_index]
+        )
         print("user_state generated")
         return user_state
+
+    def _user_candidate_items(self, **kwds: Any) -> Tensor:
+        items = self.category_data["presented_slate"].loc[self.random_index]
+        article_category_map = self.dataset_reader.article_category_map()
+        item_list = [article_category_map.get(key, []) for key in items]
+
+        remaining_items = 30 - len(item_list)
+        additional_values = random.choices(
+            list(set(range(18)) - set(item_list)), k=remaining_items
+        )
+        item_list.extend(additional_values)
+        random.shuffle(item_list)
+        # length_of_list = len(item_list)
+        candidate_tensor = [torch.eye(18)[value] for value in item_list]
+        return candidate_tensor
 
     def _generate_hidden_state(self, **kwds: Any) -> Tensor:
         normalized_user_state = self.user_state / self.user_state.sum()
