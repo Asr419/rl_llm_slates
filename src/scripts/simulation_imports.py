@@ -12,6 +12,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.optim as optim
+import torch.nn.functional as F
 import yaml
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader

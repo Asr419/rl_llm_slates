@@ -38,7 +38,7 @@ class SlateGym(gym.Env):
         cdocs_subset_idx: Optional[torch.Tensor] = None,
     ):
         if cdocs_subset_idx is not None:
-            cdocs_feature = self.cdocs_feature[cdocs_subset_idx, :]
+            cdocs_feature = self.candidate_docs[cdocs_subset_idx, :]
         else:
             cdocs_feature = self.candidate_docs
 

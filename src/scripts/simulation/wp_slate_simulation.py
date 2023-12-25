@@ -54,30 +54,46 @@ def optimize_model(batch, batch_size):
     loss.backward()
     optimizer.step()
     item = actor.compute_proto_slate(state_batch, use_actor_policy_net=True)
-    proto_action_tensor = item.reshape(batch_size, 5, 20)
+    proto_action_tensor = item.reshape(batch_size, 5, 18)
+
     actor_loss_list = []
+    for i in range(batch_size):
+        item_set = proto_action_tensor[i]
+        selected_indices = random.sample(range(5), 3)
+
+        # Calculate the loss based on the orthogonality of the selected tensors
+        loss = 0.0
+        for j in selected_indices:
+            for k in selected_indices:
+                if j < k:  # Ensure unique pairs
+                    # Compute the cosine similarity between the two selected tensors
+                    similarity = F.cosine_similarity(item_set[j], item_set[k], dim=2)
+
+                    # Orthogonality loss term (minimize cosine similarity)
+                    loss += torch.sum(1 - similarity)
+        actor_loss_list.append(loss)
 
     # Taking the average along the third axis to reduce the tensor size
     # proto_action_tensor_2 = torch.mean(proto_action_tensor, axis=1)
-    for i in range(batch_size):
-        proto_action_tensor_rep = proto_action_tensor[i]
-        state = state_batch[i]
-        user_state_rep = state.repeat((proto_action_tensor_rep.shape[0], 1))
-        q_loss = agent.compute_q_values(
-            user_state_rep,
-            proto_action_tensor_rep,
-            use_policy_net=True,
-        )
-        with torch.no_grad():
-            detached_scores = choice_model.score_documents(
-                state, proto_action_tensor_rep
-            ).detach()
-            # [num_candidates, 1]
-        scores_tens_loss = torch.Tensor(detached_scores).to(DEVICE).unsqueeze(dim=1)
-        # max over Q(s', a)
-        scores_tens_loss = torch.softmax(scores_tens_loss, dim=0)
-        v_sum = scores_tens_loss.squeeze().sum()
-        actor_loss_list.append(-torch.sum((q_loss * scores_tens_loss) / v_sum))
+    # for i in range(batch_size):
+    #     proto_action_tensor_rep = proto_action_tensor[i]
+    #     state = state_batch[i]
+    #     user_state_rep = state.repeat((proto_action_tensor_rep.shape[0], 1))
+    #     q_loss = agent.compute_q_values(
+    #         user_state_rep,
+    #         proto_action_tensor_rep,
+    #         use_policy_net=True,
+    #     )
+    #     with torch.no_grad():
+    #         detached_scores = choice_model._score_documents(
+    #             state, proto_action_tensor_rep
+    #         ).detach()
+    #         # [num_candidates, 1]
+    #     scores_tens_loss = torch.Tensor(detached_scores).to(DEVICE).unsqueeze(dim=1)
+    #     # max over Q(s', a)
+    #     scores_tens_loss = torch.softmax(scores_tens_loss, dim=0)
+    #     v_sum = scores_tens_loss.squeeze().sum()
+    #     actor_loss_list.append(-torch.sum((q_loss * scores_tens_loss) / v_sum))
     actor_loss = torch.tensor(actor_loss_list, requires_grad=True).unsqueeze(1).mean()
     # actor_item_loss = torch.empty(128, 5)
     # for i in range(5):
@@ -241,17 +257,22 @@ if __name__ == "__main__":
                     # max_sess.append(max_rew)
                     # avg_sess.append(mean_rew)
                     ########################################
-
-                    user_state_rep = user_state.repeat((candidate_docs.shape[0], 1))
+                    cdocs_features_act, candidates = actor.k_nearest(
+                        user_state,
+                        candidate_docs,
+                        slate_size=SLATE_SIZE,
+                        use_actor_policy_net=True,
+                    )
+                    user_state_rep = user_state.repeat((cdocs_features_act.shape[0], 1))
 
                     q_val = agent.compute_q_values(
                         state=user_state_rep,
-                        candidate_docs_repr=candidate_docs,
+                        candidate_docs_repr=cdocs_features_act,
                         use_policy_net=True,
                     )  # type: ignore
 
                     choice_model.score_documents(
-                        user_state=user_state, docs_repr=candidate_docs
+                        user_state=user_state, docs_repr=cdocs_features_act
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
                     scores = torch.softmax(scores, dim=0)
@@ -267,7 +288,7 @@ if __name__ == "__main__":
                         next_user_state,
                         _,
                         _,
-                    ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
+                    ) = env.step(slate, iterator=i, cdocs_subset_idx=candidates)
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
                     satisfaction.append(response)
@@ -281,7 +302,7 @@ if __name__ == "__main__":
                             transition_cls(
                                 user_state,  # type: ignore
                                 selected_doc_feature,
-                                candidate_docs,
+                                cdocs_features_act,
                                 response,
                                 next_user_state,  # type: ignore
                             )

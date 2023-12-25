@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 class WolpertingerActorSlate(nn.Module):
     def __init__(
-        self, nn_dim: list[int], k: int, input_dim: int = 20, slate_size: int = 5
+        self, nn_dim: list[int], k: int, input_dim: int = 18, slate_size: int = 5
     ):
         super(WolpertingerActorSlate, self).__init__()
         self.k = k
@@ -21,7 +21,7 @@ class WolpertingerActorSlate(nn.Module):
             if i == 0:
                 layers.append(nn.Linear(input_dim, dim))
             elif i == len(nn_dim) - 1:
-                layers.append(nn.Linear(nn_dim[i - 1], slate_size * 20))
+                layers.append(nn.Linear(nn_dim[i - 1], slate_size * 18))
             else:
                 layers.append(nn.Linear(nn_dim[i - 1], dim))
         self.layers = nn.ModuleList(layers)
@@ -38,7 +38,7 @@ class ActorAgentSlate(nn.Module):
         self,
         nn_dim: list[int],
         k: int,
-        input_dim: int = 20,
+        input_dim: int = 18,
         tau: float = 0.001,
         slate_size: int = 5,
     ) -> None:
@@ -84,7 +84,7 @@ class ActorAgentSlate(nn.Module):
         proto_action = self.compute_proto_slate(
             input_state, use_actor_policy_net=use_actor_policy_net
         )
-        proto_slate = proto_action.view(slate_size, 20)
+        proto_slate = proto_action.view(slate_size, 18)
         start = time.time()
         for count, i in enumerate(proto_slate):
             distances = torch.linalg.norm(candidate_docs - i, axis=1)

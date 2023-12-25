@@ -24,7 +24,7 @@ parameters:
   ######## Models related parameters ########
   slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########
-  nearest_neighbours: 400
+  nearest_neighbours: 20
   ######## Seed ########
   seeds: [5]
   #[5, 7, 42, 97, 33]
