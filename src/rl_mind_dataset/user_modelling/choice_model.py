@@ -74,8 +74,27 @@ class NormalizableChoiceModel(AbstractChoiceModel):
 class DotProductChoiceModel(NormalizableChoiceModel):
     """A multinomial logit choice model with dot product as the scoring function."""
 
-    def __init__(self, satisfaction_threshold: float = 0.0) -> None:
-        super().__init__(satisfaction_threshold)
+    def __init__(
+        self, satisfaction_threshold: float = 0.0, no_selection_token: int = -1
+    ) -> None:
+        super().__init__(satisfaction_threshold, no_selection_token)
+
+    def choose_document(self) -> int:
+        assert (
+            self._scores is not None
+        ), "Scores are not computed yet. call score_documents() first."
+
+        all_probs = self._scores
+        # add null document, by adding a score of 0 at the last postin of the tensor _scores
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0])))
+        all_probs = torch.softmax(all_probs, dim=0)
+        # select the item according to the probability distribution all_probs
+        selected_index = int(torch.multinomial(all_probs, num_samples=1).item())
+        # check if the selected item is the null document return no_selection_token
+        if selected_index == len(all_probs) - 1:
+            return self.no_selection_token
+        else:
+            return selected_index
 
     def _score_documents(
         self, user_state: torch.Tensor, docs_repr: torch.Tensor
@@ -84,6 +103,9 @@ class DotProductChoiceModel(NormalizableChoiceModel):
         scores = torch.mm(user_state.unsqueeze(0), docs_repr.t()).squeeze(0)
         # normalize dot product values to 0 and 1 for convenience of training
         return scores
+
+    def score_documents(self, user_state: torch.Tensor, docs_repr: torch.Tensor):
+        self._scores = self._score_documents(user_state, docs_repr)
 
 
 class CosineSimilarityChoiceModel(NormalizableChoiceModel):

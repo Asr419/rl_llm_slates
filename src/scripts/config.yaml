@@ -1,0 +1,40 @@
+parameters:
+  ######## User related parameters ########
+  resp_amp_factor: 1.0
+  state_model_cls: ObservedUserState
+  choice_model_cls: DotProductChoiceModel
+  response_model_cls: WeightedDotProductResponseModel
+  ######## Environment related parameters ########
+  num_users: 5000
+  sess_budget: 200
+  slate_size: 5
+  num_item_features: 20
+  num_candidates: 2000
+  num_user_features: 20
+  alpha_response: 0.25
+  ######## Training related parameters ########
+  replay_memory_capacity: 10000
+  batch_size: 30
+  gamma: 1.0
+  tau: 0.0001
+  lr: 1e-4
+  num_episodes: 10000
+  warmup_batches: 1
+  device: "cpu"
+  ######## Models related parameters ########
+  slate_gen_model_cls: TopKSlateGenerator
+  ######## Wolpertinger policy ########
+  nearest_neighbours: 400
+  ######## Seed ########
+  seeds: [5]
+  #[5, 7, 42, 97, 33]
+  #[5, 7, 42, 97, 33]
+  #test=[140, 184, 30, 62, 4]
+  #test = [27,29,31]
+  #[5,7,42,97,99]
+  #[5,7,42,97, 33]
+  #[5, 7, 9, 11, 13, 17]
+  #[5, 7, 77, 79, 81, 42, 11, 13, 17]
+  ######## Grouping ########
+  grouping: "Proto-Slate1"
+  

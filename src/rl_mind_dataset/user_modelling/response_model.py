@@ -63,21 +63,44 @@ class AmplifiedResponseModel(AbstractResponseModel):
         return super().generate_null_response() * self.amp_factor
 
 
-class WeightedDotProductResponseModel(AmplifiedResponseModel):
-    def __init__(self, amp_factor: int = 1, alpha: float = 1.0, **kwds: Any) -> None:
-        super().__init__(amp_factor, **kwds)
+class WeightedDotProductResponseModel:
+    def __init__(
+        self,
+        amp_factor: int = 1,
+        alpha: float = 1.0,
+        null_response: float = -1.0,
+        **kwds: Any,
+    ) -> None:
+        super().__init__(**kwds)
+        self.amp_factor = amp_factor
         self.alpha = alpha
+        self.null_response = null_response
 
     def _generate_response(
         self,
         estimated_user_state: torch.Tensor,
         doc_repr: torch.Tensor,
-        doc_quality: torch.Tensor,
+        clicked_doc: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
         satisfaction = torch.dot(estimated_user_state, doc_repr)
+        doc_quality = torch.dot(doc_repr, clicked_doc)
         response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
         return response
+
+    def generate_response(
+        self,
+        estimated_user_state: torch.Tensor,
+        doc_repr: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
+        return (
+            self._generate_response(estimated_user_state, doc_repr, **kwargs)
+            * self.amp_factor
+        )
+
+    def generate_null_response(self) -> torch.Tensor:
+        return torch.tensor(self.null_response)
 
 
 class CosineResponseModel(AmplifiedResponseModel):
