@@ -53,64 +53,12 @@ def optimize_model(batch, batch_size):
     # Optimize the model
     loss.backward()
     optimizer.step()
-    item = actor.compute_proto_slate(state_batch, use_actor_policy_net=True)
-    proto_action_tensor = item.reshape(batch_size, 5, 18)
-
-    actor_loss_list = []
-    for i in range(batch_size):
-        item_set = proto_action_tensor[i]
-        selected_indices = random.sample(range(5), 5)
-
-        # Calculate the loss based on the orthogonality of the selected tensors
-        loss = 0.0
-        for j in selected_indices:
-            for k in selected_indices:
-                if j < k:  # Ensure unique pairs
-                    # Compute the cosine similarity between the two selected tensors
-                    similarity = F.cosine_similarity(item_set[j], item_set[k], dim=0)
-
-                    # Orthogonality loss term (minimize cosine similarity)
-                    loss += torch.sum(1 - similarity)
-        actor_loss_list.append(loss)
-
-    # Taking the average along the third axis to reduce the tensor size
-    # proto_action_tensor_2 = torch.mean(proto_action_tensor, axis=1)
-    # for i in range(batch_size):
-    #     proto_action_tensor_rep = proto_action_tensor[i]
-    #     state = state_batch[i]
-    #     user_state_rep = state.repeat((proto_action_tensor_rep.shape[0], 1))
-    #     q_loss = agent.compute_q_values(
-    #         user_state_rep,
-    #         proto_action_tensor_rep,
-    #         use_policy_net=True,
-    #     )
-    #     with torch.no_grad():
-    #         detached_scores = choice_model._score_documents(
-    #             state, proto_action_tensor_rep
-    #         ).detach()
-    #         # [num_candidates, 1]
-    #     scores_tens_loss = torch.Tensor(detached_scores).to(DEVICE).unsqueeze(dim=1)
-    #     # max over Q(s', a)
-    #     scores_tens_loss = torch.softmax(scores_tens_loss, dim=0)
-    #     v_sum = scores_tens_loss.squeeze().sum()
-    #     actor_loss_list.append(-torch.sum((q_loss * scores_tens_loss) / v_sum))
-    actor_loss = torch.tensor(actor_loss_list, requires_grad=True).unsqueeze(1).mean()
-    # actor_item_loss = torch.empty(128, 5)
-    # for i in range(5):
-    #     q_values = -agent.compute_q_values(
-    #         state_batch,
-    #         proto_action_tensor[:, i, :],
-    #         use_policy_net=True,
-    # print(q_loss.grad_fn)
-    # print(scores_tens_loss.grad_fn)
-    # #     )
-    # a = 10
-    #     if q_values.shape != (128, 1):
-    #         raise ValueError(f"Shape mismatch in q_values for column {i}")
-
-    #     # Assign q_values to the corresponding column
-    #     actor_item_loss[:, i : i + 1] = -q_values
-    # actor_loss = torch.mean(actor_item_loss, dim=1, keepdim=True).mean()
+    actor_loss = -agent.compute_q_values(
+        state_batch,
+        actor.compute_proto_item(state_batch, use_actor_policy_net=True),
+        use_policy_net=True,
+    )
+    actor_loss = actor_loss.mean()
     actor_loss.backward()
     actor_optimizer.step()
     return loss, actor_loss
@@ -160,7 +108,7 @@ if __name__ == "__main__":
 
         ######## Init_wandb ########
         RUN_NAME = (
-            f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATE_WP"
+            f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_ITEM_WP"
         )
         wandb.init(project="rl_recsys", config=config["parameters"], name=RUN_NAME)
 
@@ -191,17 +139,7 @@ if __name__ == "__main__":
             collate_fn=replay_memory_dataset.collate_fn,
             shuffle=False,
         )
-        actor = ActorAgentSlate(
-            nn_dim=[
-                20,
-                40,
-                60,
-                80,
-                100,
-            ],  # observable= [20, 40, 60, 80, 100], weight_decay=1e-4
-            k=int(NEAREST_NEIGHBOURS / SLATE_SIZE),
-            slate_size=SLATE_SIZE,
-        )
+        actor = ActorAgent(nn_dim=[18, 18], k=NEAREST_NEIGHBOURS)
 
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
@@ -260,7 +198,6 @@ if __name__ == "__main__":
                     cdocs_features_act, candidates = actor.k_nearest(
                         user_state,
                         candidate_docs,
-                        slate_size=SLATE_SIZE,
                         use_actor_policy_net=True,
                     )
                     user_state_rep = user_state.repeat((cdocs_features_act.shape[0], 1))
@@ -316,13 +253,12 @@ if __name__ == "__main__":
                 batch = next(iter(replay_memory_dataloader))
                 for elem in batch:
                     elem.to(DEVICE)
-                batch_loss, actor_batch_loss = optimize_model(batch, BATCH_SIZE)
+                batch_loss, actor_item_loss = optimize_model(batch, BATCH_SIZE)
                 agent.soft_update_target_network()
                 loss.append(batch_loss)
-                actor_loss.append(actor_batch_loss)
+                actor_loss.append(actor_item_loss)
 
             loss = torch.mean(torch.tensor(loss))
-            actor_loss = torch.mean(torch.tensor(actor_loss))
             # sess_length = np.sum(time_unit_consumed)
             ep_quality = torch.mean(torch.tensor(quality))
             ep_avg_satisfaction = torch.mean(torch.tensor(satisfaction))
@@ -352,7 +288,6 @@ if __name__ == "__main__":
                 "loss": loss,
                 "actor_loss": actor_loss,
                 # "quality": ep_quality,
-                "quality": ep_quality,
                 "avg_satisfaction": ep_avg_satisfaction,
                 "cum_satisfaction": ep_cum_satisfaction,
                 # "max_avg": ep_max_avg,

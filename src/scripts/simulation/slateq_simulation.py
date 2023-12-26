@@ -98,10 +98,10 @@ if __name__ == "__main__":
         response_model_cls = parameters["response_model_cls"]
 
         ######## Init_wandb ########
-        # RUN_NAME = (
-        #     f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
-        # )
-        # wandb.init(project="rl_recsys", config=config["parameters"], name=RUN_NAME)
+        RUN_NAME = (
+            f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
+        )
+        wandb.init(project="rl_recsys", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
         user_state = UserState()
@@ -210,6 +210,7 @@ if __name__ == "__main__":
                         next_user_state,
                         _,
                         _,
+                        diverse_topics,
                     ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
@@ -263,6 +264,7 @@ if __name__ == "__main__":
                 #     f"Avg_Avg_satisfaction: {ep_avg_avg} - Avg_Cum_Rew: {ep_avg_cum}\n"
                 #     f"Cumulative_Normalized: {cum_normalized}"
                 #
+                f"Diverse_topics: {diverse_topics}\n"
             )
             print(log_str)
             ###########################################################################
@@ -277,10 +279,11 @@ if __name__ == "__main__":
                 # "best_rl_avg_diff": ep_max_avg - ep_avg_satisfaction,
                 # "best_avg_avg_diff": ep_max_avg - ep_avg_avg,
                 # "cum_normalized": cum_normalized,
+                "diverse_topics": diverse_topics,
             }
             if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
                 log_dict["loss"] = loss
-            # wandb.log(log_dict, step=i_episode)
+            wandb.log(log_dict, step=i_episode)
 
             # ###########################################################################
             # save_dict["session_length"].append(sess_length)
@@ -291,6 +294,6 @@ if __name__ == "__main__":
             # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
             # save_dict["cum_normalized"].append(cum_normalized)
 
-        # wandb.finish()
+        wandb.finish()
         # directory = f"observed_topic_slateq_{ALPHA_RESPONSE}_try_gamma"
         # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

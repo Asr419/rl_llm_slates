@@ -32,6 +32,7 @@ from rl_mind_dataset.agent_modeling.wp_slate_agent import (
     WolpertingerActorSlate,
     ActorAgentSlate,
 )
+from rl_mind_dataset.agent_modeling.wp_agent import WolpertingerActor, ActorAgent
 
 # from rl_mind_dataset.agent_modeling.wp_agent import WolpertingerActor, ActorAgent
 # from rl_mind_dataset.agent_modeling.wp_slate_agent import (

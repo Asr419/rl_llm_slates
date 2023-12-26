@@ -13,12 +13,12 @@ parameters:
   num_user_features: 20
   alpha_response: 0.25
   ######## Training related parameters ########
-  replay_memory_capacity: 10000
+  replay_memory_capacity: 4000
   batch_size: 30
   gamma: 1.0
   tau: 0.0001
   lr: 1e-4
-  num_episodes: 10000
+  num_episodes: 1000
   warmup_batches: 1
   device: "cpu"
   ######## Models related parameters ########

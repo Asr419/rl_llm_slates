@@ -78,10 +78,11 @@ class UserState(AbstractUserState):
         article_category_map = self.dataset_reader.article_category_map()
         item_list = [article_category_map.get(key, []) for key in items]
 
-        remaining_items = 30 - len(item_list)
-        additional_values = random.choices(
-            list(set(range(18)) - set(item_list)), k=remaining_items
-        )
+        remaining_items = 100 - len(item_list)
+        # additional_values = random.choices(
+        #     list(set(range(18)) - set(item_list)), k=remaining_items
+        # )
+        additional_values = random.choices(list(set(range(18))), k=remaining_items)
         item_list.extend(additional_values)
         random.shuffle(item_list)
         # length_of_list = len(item_list)

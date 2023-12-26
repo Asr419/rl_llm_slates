@@ -43,6 +43,7 @@ class SlateGym(gym.Env):
             cdocs_feature = self.candidate_docs
 
         cdocs_feature = cdocs_feature[slate, :]
+        diverse_topics = torch.sum(torch.sum(cdocs_feature, dim=0) > 0)
 
         # select from the slate on item following the user choice model
         hidden_state = self.user_state._generate_hidden_state()
@@ -87,6 +88,7 @@ class SlateGym(gym.Env):
             next_user_state,
             False,
             info,
+            diverse_topics,
         )
 
     def reset(self) -> None:
