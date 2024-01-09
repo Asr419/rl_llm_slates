@@ -3,7 +3,7 @@ parameters:
   resp_amp_factor: 1.0
   state_model_cls: ObservedUserState
   choice_model_cls: DotProductChoiceModel
-  response_model_cls: WeightedDotProductResponseModel
+  response_model_cls: WeightedCosineResponseModel
   ######## Environment related parameters ########
   num_users: 5000
   sess_budget: 200
@@ -11,14 +11,14 @@ parameters:
   num_item_features: 20
   num_candidates: 2000
   num_user_features: 20
-  alpha_response: 0.25
+  alpha_response: 0.5
   ######## Training related parameters ########
-  replay_memory_capacity: 4000
+  replay_memory_capacity: 250
   batch_size: 30
   gamma: 1.0
   tau: 0.0001
   lr: 1e-4
-  num_episodes: 1000
+  num_episodes: 10000
   warmup_batches: 1
   device: "cpu"
   ######## Models related parameters ########

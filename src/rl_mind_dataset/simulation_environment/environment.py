@@ -67,7 +67,7 @@ class SlateGym(gym.Env):
 
             # TODO: remove generate topic response and fix it in the response model
             response = self.response_model._generate_response(
-                hidden_state,
+                self.curr_user,
                 selected_doc_feature,
                 self.clicked_docs[iterator],
             )

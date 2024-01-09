@@ -57,43 +57,43 @@ def optimize_model(batch, batch_size):
     proto_action_tensor = item.reshape(batch_size, 5, 18)
 
     actor_loss_list = []
-    for i in range(batch_size):
-        item_set = proto_action_tensor[i]
-        selected_indices = random.sample(range(5), 5)
+    # for i in range(batch_size):
+    #     item_set = proto_action_tensor[i]
+    #     selected_indices = random.sample(range(5), 3)
 
-        # Calculate the loss based on the orthogonality of the selected tensors
-        loss = 0.0
-        for j in selected_indices:
-            for k in selected_indices:
-                if j < k:  # Ensure unique pairs
-                    # Compute the cosine similarity between the two selected tensors
-                    similarity = F.cosine_similarity(item_set[j], item_set[k], dim=0)
+    #     # Calculate the loss based on the orthogonality of the selected tensors
+    #     loss = 0.0
+    #     for j in selected_indices:
+    #         for k in selected_indices:
+    #             if j < k:  # Ensure unique pairs
+    #                 # Compute the cosine similarity between the two selected tensors
+    #                 similarity = F.cosine_similarity(item_set[j], item_set[k], dim=0)
 
-                    # Orthogonality loss term (minimize cosine similarity)
-                    loss += torch.sum(1 - similarity)
-        actor_loss_list.append(loss)
+    #                 # Orthogonality loss term (minimize cosine similarity)
+    #                 loss += torch.sum(1 - similarity)
+    #     actor_loss_list.append(loss)
 
     # Taking the average along the third axis to reduce the tensor size
-    # proto_action_tensor_2 = torch.mean(proto_action_tensor, axis=1)
-    # for i in range(batch_size):
-    #     proto_action_tensor_rep = proto_action_tensor[i]
-    #     state = state_batch[i]
-    #     user_state_rep = state.repeat((proto_action_tensor_rep.shape[0], 1))
-    #     q_loss = agent.compute_q_values(
-    #         user_state_rep,
-    #         proto_action_tensor_rep,
-    #         use_policy_net=True,
-    #     )
-    #     with torch.no_grad():
-    #         detached_scores = choice_model._score_documents(
-    #             state, proto_action_tensor_rep
-    #         ).detach()
-    #         # [num_candidates, 1]
-    #     scores_tens_loss = torch.Tensor(detached_scores).to(DEVICE).unsqueeze(dim=1)
-    #     # max over Q(s', a)
-    #     scores_tens_loss = torch.softmax(scores_tens_loss, dim=0)
-    #     v_sum = scores_tens_loss.squeeze().sum()
-    #     actor_loss_list.append(-torch.sum((q_loss * scores_tens_loss) / v_sum))
+    proto_action_tensor_2 = torch.mean(proto_action_tensor, axis=1)
+    for i in range(batch_size):
+        proto_action_tensor_rep = proto_action_tensor[i]
+        state = state_batch[i]
+        user_state_rep = state.repeat((proto_action_tensor_rep.shape[0], 1))
+        q_loss = agent.compute_q_values(
+            user_state_rep,
+            proto_action_tensor_rep,
+            use_policy_net=True,
+        )
+        with torch.no_grad():
+            detached_scores = choice_model._score_documents(
+                state, proto_action_tensor_rep
+            ).detach()
+            # [num_candidates, 1]
+        scores_tens_loss = torch.Tensor(detached_scores).to(DEVICE).unsqueeze(dim=1)
+        # max over Q(s', a)
+        scores_tens_loss = torch.softmax(scores_tens_loss, dim=0)
+        v_sum = scores_tens_loss.squeeze().sum()
+        actor_loss_list.append(-torch.sum((q_loss * scores_tens_loss) / v_sum))
     actor_loss = torch.tensor(actor_loss_list, requires_grad=True).unsqueeze(1).mean()
     # actor_item_loss = torch.empty(128, 5)
     # for i in range(5):
@@ -193,11 +193,11 @@ if __name__ == "__main__":
         )
         actor = ActorAgentSlate(
             nn_dim=[
-                20,
-                40,
-                60,
-                80,
-                100,
+                18,
+                36,
+                54,
+                72,
+                90,
             ],  # observable= [20, 40, 60, 80, 100], weight_decay=1e-4
             k=int(NEAREST_NEIGHBOURS / SLATE_SIZE),
             slate_size=SLATE_SIZE,
@@ -235,6 +235,7 @@ if __name__ == "__main__":
             clicked_docs = env.get_clicked_docs()
 
             user_state = env.curr_user
+            user_state = user_state / user_state.sum()
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):
@@ -310,6 +311,7 @@ if __name__ == "__main__":
                         )
 
                     user_state = next_user_state
+                    user_state = user_state / user_state.sum()
 
             # optimize model
             if len(replay_memory_dataset.memory) >= WARMUP_BATCHES * BATCH_SIZE:

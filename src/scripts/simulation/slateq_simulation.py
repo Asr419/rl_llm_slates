@@ -162,6 +162,7 @@ if __name__ == "__main__":
             clicked_docs = env.get_clicked_docs()
 
             user_state = env.curr_user
+            user_state = user_state / user_state.sum()
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):
@@ -232,6 +233,7 @@ if __name__ == "__main__":
                         )
 
                     user_state = next_user_state
+                    user_state = user_state / user_state.sum()
 
             # optimize model
             if len(replay_memory_dataset.memory) >= WARMUP_BATCHES * BATCH_SIZE:

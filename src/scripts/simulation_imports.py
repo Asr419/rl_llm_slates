@@ -50,6 +50,7 @@ from rl_mind_dataset.user_modelling.response_model import (
     CosineResponseModel,
     DotProductResponseModel,
     WeightedDotProductResponseModel,
+    WeightedCosineResponseModel,
 )
 from rl_mind_dataset.user_modelling.user_state import UserState
 
@@ -66,5 +67,6 @@ class_name_to_class = {
     # "GreedySlateGenerator": GreedySlateGenerator,
     # "OptimalSlateGenerator": OptimalSlateGenerator,
     "WeightedDotProductResponseModel": WeightedDotProductResponseModel,
+    "WeightedCosineResponseModel": WeightedCosineResponseModel,
 }
 load_dotenv()
