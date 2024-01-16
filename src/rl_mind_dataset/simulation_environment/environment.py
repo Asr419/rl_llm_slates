@@ -46,7 +46,9 @@ class SlateGym(gym.Env):
         diverse_topics = torch.sum(torch.sum(cdocs_feature, dim=0) > 0)
 
         # select from the slate on item following the user choice model
-        hidden_state = self.user_state._generate_hidden_state()
+        # hidden_state = self.user_state._generate_hidden_state()
+        hidden_state = self.clicked_docs[iterator]
+        hidden_choice_state = self.hidden_choice_state()
         self.choice_model.score_documents(hidden_state, cdocs_feature)
         selected_doc_idx = self.choice_model.choose_document()
 
@@ -67,7 +69,7 @@ class SlateGym(gym.Env):
 
             # TODO: remove generate topic response and fix it in the response model
             response = self.response_model._generate_response(
-                self.curr_user,
+                hidden_choice_state,
                 selected_doc_feature,
                 self.clicked_docs[iterator],
             )
@@ -106,3 +108,8 @@ class SlateGym(gym.Env):
     def get_clicked_docs(self) -> torch.Tensor:
         self.clicked_docs = torch.stack(self.user_state.selected_item_feature())
         return self.clicked_docs
+
+    def hidden_choice_state(self):
+        sum_tensor = torch.sum(self.clicked_docs, dim=0)
+        hidden_choice_state = sum_tensor / torch.norm(sum_tensor)
+        return hidden_choice_state

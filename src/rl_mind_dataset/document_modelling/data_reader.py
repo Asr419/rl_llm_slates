@@ -2,6 +2,7 @@ import os
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+import numpy as np
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -79,3 +80,11 @@ class DatasetReader:
         news["num_category"] = news["category"].factorize()[0]
         article_category = news.set_index("itemId")["num_category"].to_dict()
         return article_category
+
+    def item2vecdict(self):
+        df = pd.read_feather(
+            self.get_data_path() / Path("MINDlarge_train/news_glove_embed.feather")
+        )
+        embedding_dict = dict(zip(df["itemId"], df["embedding"]))
+        all_vectors = [np.array(vector) for vector in embedding_dict.values()]
+        return embedding_dict, all_vectors

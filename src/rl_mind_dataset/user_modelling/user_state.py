@@ -51,42 +51,72 @@ class UserState(AbstractUserState):
         self.clicked_items = []
 
         self.dataset_interaction_path = self.DATA_PATH / Path(
-            "MINDlarge_train/interaction.feather"
+            "MINDlarge_train/interaction_all.feather"
         )
         self.interaction_data = pd.read_feather(self.dataset_interaction_path)
         self.dataset_path = self.DATA_PATH / Path("MINDlarge_train/category.feather")
         self.category_data = pd.read_feather(self.dataset_path)
         device: torch.device = (torch.device("cpu"),)
 
+    # def _generate_observable_state(self, **kwds: Any) -> torch.Tensor:
+    #     num_rows = len(self.category_data)
+    #     self.random_index = np.random.randint(0, num_rows)
+
+    #     numpy_array = np.copy(
+    #         self.category_data["category_list"].loc[self.random_index]
+    #     )
+
+    #     if numpy_array.size == 0:
+    #         self.user_state = torch.randint(2, size=(18,), dtype=torch.float32)
+    #     else:
+    #         self.user_state = torch.Tensor(numpy_array)
+
+    #     return self.user_state
     def _generate_observable_state(self, **kwds: Any) -> torch.Tensor:
         num_rows = len(self.category_data)
         self.random_index = np.random.randint(0, num_rows)
 
         numpy_array = np.copy(
-            self.category_data["category_list"].loc[self.random_index]
+            self.category_data["observed_state"].loc[self.random_index]
         )
 
         if numpy_array.size == 0:
-            self.user_state = torch.randint(2, size=(18,), dtype=torch.float32)
+            self.user_state = 2 * torch.rand(100, dtype=torch.float32) - 1
         else:
             self.user_state = torch.Tensor(numpy_array)
 
         return self.user_state
 
+    # def _user_candidate_items(self, **kwds: Any) -> Tensor:
+    #     items = self.category_data["presented_slate"].loc[self.random_index]
+    #     embedding_dict = self.dataset_reader.item2vecdict()
+    #     item_list = [embedding_dict.get(key, []) for key in items]
+
+    #     remaining_items = 150 - len(item_list)
+    #     # additional_values = random.choices(
+    #     #     list(set(range(18)) - set(item_list)), k=remaining_items
+    #     # )
+    #     additional_values = random.choices(list(set(range(18))), k=remaining_items)
+    #     item_list.extend(additional_values)
+    #     random.shuffle(item_list)
+    #     # length_of_list = len(item_list)
+    #     candidate_tensor = [torch.eye(18)[value] for value in item_list]
+    #     return candidate_tensor
     def _user_candidate_items(self, **kwds: Any) -> Tensor:
         items = self.category_data["presented_slate"].loc[self.random_index]
-        article_category_map = self.dataset_reader.article_category_map()
-        item_list = [article_category_map.get(key, []) for key in items]
-
+        embedding_dict, all_item_vectors = self.dataset_reader.item2vecdict()
+        item_list = [embedding_dict.get(key, []) for key in items]
         remaining_items = 150 - len(item_list)
-        # additional_values = random.choices(
-        #     list(set(range(18)) - set(item_list)), k=remaining_items
-        # )
-        additional_values = random.choices(list(set(range(18))), k=remaining_items)
-        item_list.extend(additional_values)
+        item_list_arrays = [np.array(vector) for vector in item_list]
+        available_vectors = [
+            vector
+            for vector in all_item_vectors
+            if not any(np.array_equal(vector, item) for item in item_list_arrays)
+        ]
+        selected_lists = random.sample(available_vectors, remaining_items)
+        item_list.extend(selected_lists)
         random.shuffle(item_list)
-        # length_of_list = len(item_list)
-        candidate_tensor = [torch.eye(18)[value] for value in item_list]
+        candidate_tensor = [torch.Tensor(value) for value in item_list]
         return candidate_tensor
 
     def _user_selected_item(self, **kwds: Any) -> Tensor:
@@ -101,12 +131,10 @@ class UserState(AbstractUserState):
 
     def selected_item_feature(self, **kwds: Any) -> Tensor:
         selected_item = self._user_selected_item()
-        article_category_map = self.dataset_reader.article_category_map()
-        selected_item_list = [
-            article_category_map.get(key, []) for key in self.clicked_items
-        ]
+        embedding_dict, all_item_vectors = self.dataset_reader.item2vecdict()
+        selected_item_list = [embedding_dict.get(key, []) for key in self.clicked_items]
         selected_candidate_tensor = [
-            torch.eye(18)[value] for value in selected_item_list
+            torch.Tensor(value) for value in selected_item_list
         ]
         return selected_candidate_tensor
 

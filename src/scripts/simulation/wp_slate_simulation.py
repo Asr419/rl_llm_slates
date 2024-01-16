@@ -54,7 +54,7 @@ def optimize_model(batch, batch_size):
     loss.backward()
     optimizer.step()
     item = actor.compute_proto_slate(state_batch, use_actor_policy_net=True)
-    proto_action_tensor = item.reshape(batch_size, 5, 18)
+    proto_action_tensor = item.reshape(batch_size, SLATE_SIZE, 18)
 
     actor_loss_list = []
     # for i in range(batch_size):

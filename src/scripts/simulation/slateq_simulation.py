@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
         ######## Training related parameters ########
         NUM_CANDIDATES = parameters["num_candidates"]
-        NUM_ITEM_FEATURES = 18
+        NUM_ITEM_FEATURES = parameters["num_item_features"]
         # NUM_ITEM_FEATURES = parameters["num_item_features"]
         SLATE_SIZE = parameters["slate_size"]
         REPLAY_MEMORY_CAPACITY = parameters["replay_memory_capacity"]

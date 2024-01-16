@@ -7,13 +7,13 @@ parameters:
   ######## Environment related parameters ########
   num_users: 5000
   sess_budget: 200
-  slate_size: 5
-  num_item_features: 20
+  slate_size: 10
+  num_item_features: 100
   num_candidates: 2000
   num_user_features: 20
   alpha_response: 0.5
   ######## Training related parameters ########
-  replay_memory_capacity: 250
+  replay_memory_capacity: 1000
   batch_size: 30
   gamma: 1.0
   tau: 0.0001
@@ -24,7 +24,7 @@ parameters:
   ######## Models related parameters ########
   slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########
-  nearest_neighbours: 20
+  nearest_neighbours: 30
   ######## Seed ########
   seeds: [5]
   #[5, 7, 42, 97, 33]
