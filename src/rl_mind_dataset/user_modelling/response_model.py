@@ -132,8 +132,8 @@ class WeightedCosineResponseModel:
             selected_doc, actual_clicked_doc, dim=0
         )
 
-        # response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
-        response = satisfaction
+        response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
+        # response = satisfaction
         return response
 
     def generate_response(

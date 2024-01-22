@@ -28,6 +28,7 @@ class SlateGym(gym.Env):
         self.is_terminal = False
 
         self.curr_user = torch.Tensor
+        self.hidden_choice_state = torch.Tensor
         self.candidate_docs: torch.Tensor
         self.clicked_docs: torch.Tensor
 
@@ -38,18 +39,28 @@ class SlateGym(gym.Env):
         cdocs_subset_idx: Optional[torch.Tensor] = None,
     ):
         if cdocs_subset_idx is not None:
-            cdocs_feature = self.candidate_docs[cdocs_subset_idx, :]
+            cdocs_subset_idx = cdocs_subset_idx.to(self.device)
+            self.candidate_docs = self.candidate_docs.to(self.device)
+            cdocs_feature = self.candidate_docs[cdocs_subset_idx, :].to(self.device)
         else:
-            cdocs_feature = self.candidate_docs
+            cdocs_feature = self.candidate_docs.to(self.device)
 
-        cdocs_feature = cdocs_feature[slate, :]
-        diverse_topics = torch.sum(torch.sum(cdocs_feature, dim=0) > 0)
+        cdocs_feature = cdocs_feature[slate, :].to(self.device)
+        # diverse_topics = torch.sum(torch.sum(cdocs_feature, dim=0) > 0)
+        diverse_curr_user = self.curr_user.view(1, -1).to(self.device)
+
+        # Calculate cosine similarity
+        cosine_similarities = torch.nn.functional.cosine_similarity(
+            diverse_curr_user, cdocs_feature, dim=1
+        )
+
+        # Calculate diverse score (sum of cosine similarities)
+        diverse_score = torch.sum(cosine_similarities) / 10
 
         # select from the slate on item following the user choice model
         # hidden_state = self.user_state._generate_hidden_state()
-        hidden_state = self.clicked_docs[iterator]
-        hidden_choice_state = self.hidden_choice_state()
-        self.choice_model.score_documents(hidden_state, cdocs_feature)
+        hidden_step_state = self.clicked_docs[iterator].to(self.device)
+        self.choice_model.score_documents(hidden_step_state, cdocs_feature)
         selected_doc_idx = self.choice_model.choose_document()
 
         if selected_doc_idx == self.choice_model.no_selection_token:
@@ -68,15 +79,16 @@ class SlateGym(gym.Env):
             selected_doc_feature = cdocs_feature[selected_doc_idx, :]
 
             # TODO: remove generate topic response and fix it in the response model
+
             response = self.response_model._generate_response(
-                hidden_choice_state,
-                selected_doc_feature,
-                self.clicked_docs[iterator],
+                self.hidden_choice_state.to(self.device),
+                selected_doc_feature.to(self.device),
+                self.clicked_docs[iterator].to(self.device),
             )
 
             # update user state
         next_user_state = self.user_state.update_state(
-            selected_doc_feature=selected_doc_feature
+            selected_doc_feature=selected_doc_feature.to(self.device)
         )
 
         if len(self.clicked_docs) == iterator:
@@ -90,7 +102,7 @@ class SlateGym(gym.Env):
             next_user_state,
             False,
             info,
-            diverse_topics,
+            diverse_score,
         )
 
     def reset(self) -> None:
@@ -103,13 +115,12 @@ class SlateGym(gym.Env):
 
     def get_candidate_docs(self) -> torch.Tensor:
         self.candidate_docs = torch.stack(self.user_state._user_candidate_items())
-        return self.candidate_docs
+        return self.candidate_docs.to(self.device)
 
     def get_clicked_docs(self) -> torch.Tensor:
         self.clicked_docs = torch.stack(self.user_state.selected_item_feature())
         return self.clicked_docs
 
-    def hidden_choice_state(self):
-        sum_tensor = torch.sum(self.clicked_docs, dim=0)
-        hidden_choice_state = sum_tensor / torch.norm(sum_tensor)
-        return hidden_choice_state
+    def hidden_state(self):
+        self.hidden_choice_state = self.user_state._generate_hidden_state()
+        return self.hidden_choice_state

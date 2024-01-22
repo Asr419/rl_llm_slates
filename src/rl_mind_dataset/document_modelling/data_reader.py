@@ -56,7 +56,7 @@ class DatasetReader:
 
     def processed_slate_datatset(self) -> pd.DataFrame:
         df = pd.read_feather(
-            self.get_data_path() / Path("MINDlarge_train/category.feather")
+            self.get_data_path() / Path("MINDlarge_train/interaction_all_50.feather")
         )
 
         return df
@@ -83,8 +83,10 @@ class DatasetReader:
 
     def item2vecdict(self):
         df = pd.read_feather(
-            self.get_data_path() / Path("MINDlarge_train/news_glove_embed.feather")
+            self.get_data_path() / Path("MINDlarge_train/news_glove_embed_50.feather")
         )
         embedding_dict = dict(zip(df["itemId"], df["embedding"]))
+        embedding_dict = {k: v for k, v in embedding_dict.items() if v is not None}
         all_vectors = [np.array(vector) for vector in embedding_dict.values()]
+
         return embedding_dict, all_vectors

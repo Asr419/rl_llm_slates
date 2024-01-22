@@ -42,21 +42,25 @@ class AbstractUserState(nn.Module, metaclass=abc.ABCMeta):
 
 
 class UserState(AbstractUserState):
-    def __init__(self, **kwds: Any) -> None:
+    def __init__(self, device: torch.device = torch.device("cpu"), **kwds: Any) -> None:
         super().__init__(**kwds)
         self.DATA_PATH = Path.home() / Path(os.environ.get("DATA_PATH"))
         self.dataset_reader = DatasetReader()
         self.random_index = None
         self.user_state: Tensor = None
         self.clicked_items = []
+        self.device = device
 
         self.dataset_interaction_path = self.DATA_PATH / Path(
-            "MINDlarge_train/interaction_all.feather"
+            "MINDlarge_train/interaction_all_50.feather"
         )
         self.interaction_data = pd.read_feather(self.dataset_interaction_path)
-        self.dataset_path = self.DATA_PATH / Path("MINDlarge_train/category.feather")
+        self.dataset_path = self.DATA_PATH / Path(
+            "MINDlarge_train/interaction_all_50.feather"
+        )
         self.category_data = pd.read_feather(self.dataset_path)
         device: torch.device = (torch.device("cpu"),)
+        self.embedding_dict, self.all_item_vectors = self.dataset_reader.item2vecdict()
 
     # def _generate_observable_state(self, **kwds: Any) -> torch.Tensor:
     #     num_rows = len(self.category_data)
@@ -79,11 +83,11 @@ class UserState(AbstractUserState):
         numpy_array = np.copy(
             self.category_data["observed_state"].loc[self.random_index]
         )
-
-        if numpy_array.size == 0:
-            self.user_state = 2 * torch.rand(100, dtype=torch.float32) - 1
+        numpy_array = numpy_array.astype(float)
+        if numpy_array.size == 0 or np.isnan(numpy_array).any():
+            self.user_state = 2 * torch.rand(50, dtype=torch.float32) - 1
         else:
-            self.user_state = torch.Tensor(numpy_array)
+            self.user_state = torch.Tensor(numpy_array.astype(float))
 
         return self.user_state
 
@@ -104,19 +108,58 @@ class UserState(AbstractUserState):
     #     return candidate_tensor
     def _user_candidate_items(self, **kwds: Any) -> Tensor:
         items = self.category_data["presented_slate"].loc[self.random_index]
-        embedding_dict, all_item_vectors = self.dataset_reader.item2vecdict()
-        item_list = [embedding_dict.get(key, []) for key in items]
-        remaining_items = 150 - len(item_list)
-        item_list_arrays = [np.array(vector) for vector in item_list]
-        available_vectors = [
-            vector
-            for vector in all_item_vectors
-            if not any(np.array_equal(vector, item) for item in item_list_arrays)
+        item_list = [
+            self.embedding_dict.get(key, [])
+            for key in items
+            if self.embedding_dict.get(key, []) is not None
+            and len(self.embedding_dict.get(key, [])) > 0
         ]
-        selected_lists = random.sample(available_vectors, remaining_items)
-        item_list.extend(selected_lists)
+        remaining_items = 150 - len(item_list)
+        # item_list_arrays = [np.array(vector) for vector in item_list]
+        # item_list_set = {tuple(item) for item in item_list_arrays}
+        # available_vectors = [
+        #     vector for vector in all_item_vectors if vector not in item_list_set
+        # ]
+        if remaining_items > 0:
+            available_items = [
+                sublist
+                for sublist in self.all_item_vectors
+                if not any(
+                    np.array_equal(sublist, item) and np.size(sublist) > 2
+                    for item in item_list
+                )
+            ]
+            # item_list_arrays = [np.array(vector) for vector in item_list]
+            # available_vectors = [
+            #     vector
+            #     for vector in self.all_item_vectors
+            #     if not any(
+            #         np.array_equal(vector, item) and np.size(vector) >= 2
+            #         for item in item_list_arrays
+            #     )
+            # ]
+            selected_lists = random.sample(
+                available_items, min(remaining_items, len(available_items))
+            )
+            item_list.extend(selected_lists)
+        item_list = item_list[:150]
         random.shuffle(item_list)
-        candidate_tensor = [torch.Tensor(value) for value in item_list]
+        candidate_tensor = [torch.Tensor(value.astype(float)) for value in item_list]
+        # items = self.category_data["presented_slate"].loc[self.random_index]
+        # embedding_dict, all_item_vectors = self.dataset_reader.item2vecdict()
+        # item_list = [embedding_dict.get(key, []) for key in items]
+        # item_list = [lst for lst in item_list if len(lst) > 0]
+        # remaining_items = 150 - len(item_list)
+        # item_list_arrays = [np.array(vector) for vector in item_list]
+        # available_vectors = [
+        #     vector
+        #     for vector in all_item_vectors
+        #     if not any(np.array_equal(vector, item) for item in item_list_arrays)
+        # ]
+        # selected_lists = random.sample(available_vectors, remaining_items)
+        # item_list.extend(selected_lists)
+        # random.shuffle(item_list)
+        # candidate_tensor = [torch.Tensor(value) for value in item_list]
         return candidate_tensor
 
     def _user_selected_item(self, **kwds: Any) -> Tensor:
@@ -130,26 +173,36 @@ class UserState(AbstractUserState):
         return clicked_items
 
     def selected_item_feature(self, **kwds: Any) -> Tensor:
-        selected_item = self._user_selected_item()
-        embedding_dict, all_item_vectors = self.dataset_reader.item2vecdict()
-        selected_item_list = [embedding_dict.get(key, []) for key in self.clicked_items]
+        selected_items = self._user_selected_item()
+        selected_item_list = [
+            self.embedding_dict.get(key, [])
+            for key in selected_items
+            if len(self.embedding_dict.get(key, [])) > 0
+        ]
         selected_candidate_tensor = [
             torch.Tensor(value) for value in selected_item_list
         ]
         return selected_candidate_tensor
 
     def _generate_hidden_state(self, **kwds: Any) -> Tensor:
-        normalized_user_state = self.user_state / self.user_state.sum()
-        sampled_value = torch.multinomial(normalized_user_state, 1).item()
-        self.hidden_user_state = torch.zeros_like(
-            normalized_user_state, dtype=torch.float32
-        )
-        self.hidden_user_state[sampled_value] = 1
+        sum_tensor = torch.sum(torch.stack(self.selected_item_feature()), dim=0)
+        self.hidden_user_state = sum_tensor / torch.norm(sum_tensor)
+
         return self.hidden_user_state
+        # normalized_user_state = self.user_state / self.user_state.sum()
+        # sampled_value = torch.multinomial(normalized_user_state, 1).item()
+        # self.hidden_user_state = torch.zeros_like(
+        #     normalized_user_state, dtype=torch.float32
+        # )
+        # self.hidden_user_state[sampled_value] = 1
+        # return self.hidden_user_state
 
     def update_state(self, selected_doc_feature: torch.Tensor) -> None:
-        topic_position = selected_doc_feature.argmax()
-        if not torch.all(selected_doc_feature == 0):
-            self.user_state[topic_position] += 1
+        # self.user_state=(self.user_state+selected_doc_feature)/2
+        self.user_state = self.user_state.to(self.device)
+
+        self.user_state = torch.mean(
+            torch.stack([self.user_state, selected_doc_feature]), dim=0
+        )
         return self.user_state
         """Update the user's observable state"""

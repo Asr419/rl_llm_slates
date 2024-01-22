@@ -84,9 +84,9 @@ class DotProductChoiceModel(NormalizableChoiceModel):
             self._scores is not None
         ), "Scores are not computed yet. call score_documents() first."
 
-        all_probs = self._scores
+        all_probs = self._scores.to("cuda:0")
         # add null document, by adding a score of 0 at the last postin of the tensor _scores
-        all_probs = torch.cat((all_probs, torch.tensor([-1.0])))
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to("cuda:0")))
         all_probs = torch.softmax(all_probs, dim=0)
         # select the item according to the probability distribution all_probs
         selected_index = int(torch.multinomial(all_probs, num_samples=1).item())

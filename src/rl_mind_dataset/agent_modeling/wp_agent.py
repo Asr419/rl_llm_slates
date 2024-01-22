@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 
 class WolpertingerActor(nn.Module):
-    def __init__(self, nn_dim: list[int], k: int, input_dim: int = 18):
+    def __init__(self, nn_dim: list[int], k: int, input_dim: int = 50):
         super(WolpertingerActor, self).__init__()
         self.k = k
 
@@ -19,7 +19,7 @@ class WolpertingerActor(nn.Module):
             if i == 0:
                 layers.append(nn.Linear(input_dim, dim))
             elif i == len(nn_dim) - 1:
-                layers.append(nn.Linear(dim, 18))
+                layers.append(nn.Linear(dim, 50))
             else:
                 layers.append(nn.Linear(dim, dim))
         self.layers = nn.ModuleList(layers)
@@ -47,7 +47,7 @@ class WolpertingerActor(nn.Module):
 
 class ActorAgent(nn.Module):
     def __init__(
-        self, nn_dim: list[int], k: int, input_dim: int = 18, tau: float = 0.001
+        self, nn_dim: list[int], k: int, input_dim: int = 50, tau: float = 0.001
     ) -> None:
         nn.Module.__init__(self)
         self.tau = tau

@@ -8,7 +8,7 @@ parameters:
   num_users: 5000
   sess_budget: 200
   slate_size: 10
-  num_item_features: 100
+  num_item_features: 50
   num_candidates: 2000
   num_user_features: 20
   alpha_response: 0.5
@@ -20,7 +20,7 @@ parameters:
   lr: 1e-4
   num_episodes: 10000
   warmup_batches: 1
-  device: "cpu"
+  device: "cuda:0"  
   ######## Models related parameters ########
   slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########

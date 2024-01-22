@@ -8,10 +8,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 class WolpertingerActorSlate(nn.Module):
     def __init__(
-        self, nn_dim: list[int], k: int, input_dim: int = 18, slate_size: int = 5
+        self, nn_dim: list[int], k: int, input_dim: int = 50, slate_size: int = 5
     ):
         super(WolpertingerActorSlate, self).__init__()
         self.k = k
@@ -21,7 +23,7 @@ class WolpertingerActorSlate(nn.Module):
             if i == 0:
                 layers.append(nn.Linear(input_dim, dim))
             elif i == len(nn_dim) - 1:
-                layers.append(nn.Linear(nn_dim[i - 1], slate_size * 18))
+                layers.append(nn.Linear(nn_dim[i - 1], slate_size * 50))
             else:
                 layers.append(nn.Linear(nn_dim[i - 1], dim))
         self.layers = nn.ModuleList(layers)
@@ -38,7 +40,7 @@ class ActorAgentSlate(nn.Module):
         self,
         nn_dim: list[int],
         k: int,
-        input_dim: int = 18,
+        input_dim: int = 50,
         tau: float = 0.001,
         slate_size: int = 5,
     ) -> None:
@@ -84,7 +86,7 @@ class ActorAgentSlate(nn.Module):
         proto_action = self.compute_proto_slate(
             input_state, use_actor_policy_net=use_actor_policy_net
         )
-        proto_slate = proto_action.view(slate_size, 18)
+        proto_slate = proto_action.view(slate_size, 50)
         start = time.time()
         for count, i in enumerate(proto_slate):
             distances = torch.linalg.norm(candidate_docs - i, axis=1)

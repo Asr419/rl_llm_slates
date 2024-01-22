@@ -101,10 +101,10 @@ if __name__ == "__main__":
         RUN_NAME = (
             f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
         )
-        wandb.init(project="rl_recsys", config=config["parameters"], name=RUN_NAME)
+        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
-        user_state = UserState()
+        user_state = UserState(device=DEVICE)
         slate_gen_model_cls = class_name_to_class[slate_gen_model_cls]
         choice_model_cls = class_name_to_class[choice_model_cls]
         response_model_cls = class_name_to_class[response_model_cls]
@@ -141,6 +141,7 @@ if __name__ == "__main__":
             response_model=response_model,
             device=DEVICE,
         )
+        torch.cuda.set_device(DEVICE)
 
         ############################## TRAINING ###################################
         save_dict = defaultdict(list)
@@ -155,14 +156,14 @@ if __name__ == "__main__":
             )
 
             env.reset()
+            env.hidden_state()
             is_terminal = False
             cum_satisfaction = 0
 
-            candidate_docs = env.get_candidate_docs()
-            clicked_docs = env.get_clicked_docs()
+            candidate_docs = env.get_candidate_docs().to(DEVICE)
+            clicked_docs = env.get_clicked_docs().to(DEVICE)
 
-            user_state = env.curr_user
-            user_state = user_state / user_state.sum()
+            user_observed_state = env.curr_user.to(DEVICE)
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):
@@ -186,7 +187,9 @@ if __name__ == "__main__":
                     # avg_sess.append(mean_rew)
                     ########################################
 
-                    user_state_rep = user_state.repeat((candidate_docs.shape[0], 1))
+                    user_state_rep = user_observed_state.repeat(
+                        (candidate_docs.shape[0], 1)
+                    ).to(DEVICE)
 
                     q_val = agent.compute_q_values(
                         state=user_state_rep,
@@ -195,7 +198,7 @@ if __name__ == "__main__":
                     )  # type: ignore
 
                     choice_model.score_documents(
-                        user_state=user_state, docs_repr=candidate_docs
+                        user_state=user_observed_state, docs_repr=candidate_docs
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
                     scores = torch.softmax(scores, dim=0)
@@ -211,7 +214,7 @@ if __name__ == "__main__":
                         next_user_state,
                         _,
                         _,
-                        diverse_topics,
+                        diverse_score,
                     ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
@@ -224,7 +227,7 @@ if __name__ == "__main__":
                         # push memory
                         replay_memory_dataset.push(
                             transition_cls(
-                                user_state,  # type: ignore
+                                user_observed_state,  # type: ignore
                                 selected_doc_feature,
                                 candidate_docs,
                                 response,
@@ -232,8 +235,8 @@ if __name__ == "__main__":
                             )
                         )
 
-                    user_state = next_user_state
-                    user_state = user_state / user_state.sum()
+                    user_observed_state = next_user_state
+                    # user_state = user_state / user_state.sum()
 
             # optimize model
             if len(replay_memory_dataset.memory) >= WARMUP_BATCHES * BATCH_SIZE:
@@ -266,7 +269,7 @@ if __name__ == "__main__":
                 #     f"Avg_Avg_satisfaction: {ep_avg_avg} - Avg_Cum_Rew: {ep_avg_cum}\n"
                 #     f"Cumulative_Normalized: {cum_normalized}"
                 #
-                f"Diverse_topics: {diverse_topics}\n"
+                f"Diverse_score: {diverse_score}\n"
             )
             print(log_str)
             ###########################################################################
@@ -281,7 +284,7 @@ if __name__ == "__main__":
                 # "best_rl_avg_diff": ep_max_avg - ep_avg_satisfaction,
                 # "best_avg_avg_diff": ep_max_avg - ep_avg_avg,
                 # "cum_normalized": cum_normalized,
-                "diverse_topics": diverse_topics,
+                "diverse_score": diverse_score,
             }
             if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
                 log_dict["loss"] = loss
