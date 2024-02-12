@@ -45,6 +45,15 @@ class RandomSlateGenerator(AbstractSlateGenerator):
         return slate_scores, slate_ids
 
 
+class TopKGreedySlateGenerator(AbstractSlateGenerator):
+    def __call__(
+        self,
+        docs_scores: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        topk_scores, topk_ids = torch.topk(docs_scores, k=self.slate_size)
+        return topk_scores, topk_ids
+
+
 # class DiverseSlateGenerator(AbstractSlateGenerator):
 #     def __call__(
 #         self,

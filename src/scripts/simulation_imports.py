@@ -27,6 +27,7 @@ from rl_mind_dataset.agent_modeling.dqn_agent import (
 from rl_mind_dataset.agent_modeling.slate_generator import (  # DiverseSlateGenerator,; GreedySlateGenerator,; OptimalSlateGenerator,
     RandomSlateGenerator,
     TopKSlateGenerator,
+    TopKGreedySlateGenerator,
 )
 from rl_mind_dataset.agent_modeling.wp_slate_agent import (
     WolpertingerActorSlate,
@@ -55,7 +56,7 @@ from rl_mind_dataset.user_modelling.response_model import (
 from rl_mind_dataset.user_modelling.user_state import UserState
 
 
-# from rl_mind_dataset.utils import save_run, save_run_wa
+from rl_mind_dataset.utils import save_run, save_run_wa
 
 class_name_to_class = {
     "ObservedUserState": UserState,
@@ -63,6 +64,7 @@ class_name_to_class = {
     "DotProductResponseModel": DotProductResponseModel,
     "TopKSlateGenerator": TopKSlateGenerator,
     "RandomSlateGenerator": RandomSlateGenerator,
+    "TopKGreedySlateGenerator": TopKGreedySlateGenerator,
     # "DiverseSlateGenerator": DiverseSlateGenerator,
     # "GreedySlateGenerator": GreedySlateGenerator,
     # "OptimalSlateGenerator": OptimalSlateGenerator,

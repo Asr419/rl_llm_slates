@@ -18,10 +18,22 @@ def optimize_model(batch):
     )  # type: ignore
 
     cand_qtgt_list = []
+    # cand_qval_list = []
     for b in range(next_state_batch.shape[0]):
         next_state = next_state_batch[b, :]
         candidates = candidates_batch[b, :, :]
         next_state_rep = next_state.repeat((candidates.shape[0], 1))
+        # state = state_batch[b, :]
+        # state_rep = state.repeat((candidates.shape[0], 1))
+        # cand_qval = agent.compute_q_values(state_rep, candidates, use_policy_net=True)
+        # choice_model.score_documents(state, candidates)
+        # scores_tens_val = torch.Tensor(choice_model.scores).to(DEVICE).unsqueeze(dim=1)
+        # topk_val = torch.topk((cand_qval * scores_tens_val), dim=0, k=SLATE_SIZE)
+        # curr_q_val = topk_val.values
+        # topk_val_idx = topk_val.indices
+        # p_sum_val = scores_tens_val[topk_val_idx, :].squeeze().sum()
+        # curr_q_val = torch.sum(curr_q_val / p_sum_val)
+        # cand_qval_list.append(curr_q_val)
 
         cand_qtgt = agent.compute_q_values(
             next_state_rep, candidates, use_policy_net=False
@@ -46,6 +58,7 @@ def optimize_model(batch):
         cand_qtgt_list.append(curr_q_tgt)
 
     q_tgt = torch.stack(cand_qtgt_list).unsqueeze(dim=1)
+    # q_val = torch.stack(cand_qval_list).unsqueeze(dim=1)
     expected_q_values = q_tgt * GAMMA + satisfaction_batch.unsqueeze(dim=1)
 
     loss = criterion(q_val, expected_q_values)
@@ -141,7 +154,7 @@ if __name__ == "__main__":
             response_model=response_model,
             device=DEVICE,
         )
-        torch.cuda.set_device(DEVICE)
+        # torch.cuda.set_device(DEVICE)
 
         ############################## TRAINING ###################################
         save_dict = defaultdict(list)
@@ -201,7 +214,7 @@ if __name__ == "__main__":
                         user_state=user_observed_state, docs_repr=candidate_docs
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
-                    scores = torch.softmax(scores, dim=0)
+                    # scores = torch.softmax(scores, dim=0)
 
                     q_val = q_val.squeeze()
                     slate = agent.get_action(scores, q_val)

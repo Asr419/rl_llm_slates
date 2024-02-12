@@ -114,7 +114,7 @@ class UserState(AbstractUserState):
             if self.embedding_dict.get(key, []) is not None
             and len(self.embedding_dict.get(key, [])) > 0
         ]
-        remaining_items = 150 - len(item_list)
+        remaining_items = 300 - len(item_list)
         # item_list_arrays = [np.array(vector) for vector in item_list]
         # item_list_set = {tuple(item) for item in item_list_arrays}
         # available_vectors = [
@@ -142,7 +142,7 @@ class UserState(AbstractUserState):
                 available_items, min(remaining_items, len(available_items))
             )
             item_list.extend(selected_lists)
-        item_list = item_list[:150]
+        item_list = item_list[:300]
         random.shuffle(item_list)
         candidate_tensor = [torch.Tensor(value.astype(float)) for value in item_list]
         # items = self.category_data["presented_slate"].loc[self.random_index]
@@ -184,7 +184,10 @@ class UserState(AbstractUserState):
         ]
         return selected_candidate_tensor
 
-    def _generate_hidden_state(self, **kwds: Any) -> Tensor:
+    def _generate_hidden_state(
+        self,
+        **kwds: Any,
+    ) -> Tensor:
         sum_tensor = torch.sum(torch.stack(self.selected_item_feature()), dim=0)
         self.hidden_user_state = sum_tensor / torch.norm(sum_tensor)
 
@@ -197,12 +200,24 @@ class UserState(AbstractUserState):
         # self.hidden_user_state[sampled_value] = 1
         # return self.hidden_user_state
 
-    def update_state(self, selected_doc_feature: torch.Tensor) -> None:
+    def update_state(
+        self, selected_doc_feature: torch.Tensor, sigma: int = 1.0
+    ) -> None:
         # self.user_state=(self.user_state+selected_doc_feature)/2
         self.user_state = self.user_state.to(self.device)
+        distance_squared = torch.sum((self.user_state - selected_doc_feature) ** 2)
+        similarity = torch.exp(-distance_squared / (2 * sigma**2))
+        # I = torch.dot(self.user_state, selected_doc_feature)  # type: ignore
+        p_positive = (similarity + 1) / 2
 
-        self.user_state = torch.mean(
-            torch.stack([self.user_state, selected_doc_feature]), dim=0
-        )
+        if torch.rand(1).to("cuda:0") < p_positive:
+            self.user_state = self.user_state + (1 - similarity) * selected_doc_feature
+        else:
+            self.user_state = self.user_state - (1 - similarity) * selected_doc_feature
+        # self.user_state = torch.clamp(self.user_state, min=-1.0, max=1.0)
+
+        # self.user_state = torch.mean(
+        #     torch.stack([self.user_state, selected_doc_feature]), dim=0
+        # )
         return self.user_state
         """Update the user's observable state"""
