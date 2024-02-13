@@ -2,7 +2,7 @@ parameters:
   ######## User related parameters ########
   resp_amp_factor: 1.0
   state_model_cls: ObservedUserState
-  choice_model_cls: DotProductChoiceModel
+  choice_model_cls: NCFChoiceModel
   response_model_cls: WeightedCosineResponseModel
   ######## Environment related parameters ########
   num_users: 5000

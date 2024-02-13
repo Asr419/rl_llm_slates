@@ -2,11 +2,14 @@
 import abc
 from dataclasses import dataclass
 from typing import Any, Callable, Type, TypeVar
+import os
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn.functional as F
+from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 
 
 # maybe the scoring function can be passed as a parameter
@@ -114,6 +117,23 @@ class CosineSimilarityChoiceModel(NormalizableChoiceModel):
     def __init__(self, satisfaction_threshold: float = 0.0) -> None:
         super().__init__(satisfaction_threshold)
 
+    def choose_document(self) -> int:
+        assert (
+            self._scores is not None
+        ), "Scores are not computed yet. call score_documents() first."
+
+        all_probs = self._scores.to("cuda:0")
+        # add null document, by adding a score of 0 at the last postin of the tensor _scores
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to("cuda:0")))
+        all_probs = torch.softmax(all_probs, dim=0)
+        # select the item according to the probability distribution all_probs
+        selected_index = int(torch.multinomial(all_probs, num_samples=1).item())
+        # check if the selected item is the null document return no_selection_token
+        if selected_index == len(all_probs) - 1:
+            return self.no_selection_token
+        else:
+            return selected_index
+
     def _score_documents(
         self, user_state: torch.Tensor, docs_repr: torch.Tensor
     ) -> torch.Tensor:
@@ -123,3 +143,44 @@ class CosineSimilarityChoiceModel(NormalizableChoiceModel):
         # normalize cosine values to 0 and 1 for convenience of training
         # print(scores.max())
         return scores
+
+    def score_documents(self, user_state: torch.Tensor, docs_repr: torch.Tensor):
+        self._scores = self._score_documents(user_state, docs_repr)
+
+
+class NCFChoiceModel(NormalizableChoiceModel):
+    def __init__(self, satisfaction_threshold: float = 0.0) -> None:
+        super().__init__(satisfaction_threshold)
+        base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
+        RUN_BASE_PATH = Path(f"user_choice_model")
+        PATH = base_path / RUN_BASE_PATH / Path("model.pt")
+        self.model = torch.load(PATH)
+
+    def choose_document(self) -> int:
+        assert (
+            self._scores is not None
+        ), "Scores are not computed yet. call score_documents() first."
+
+        all_probs = self._scores.to("cuda:0")
+        # add null document, by adding a score of 0 at the last postin of the tensor _scores
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to("cuda:0")))
+        all_probs = torch.softmax(all_probs, dim=0)
+        # select the item according to the probability distribution all_probs
+        selected_index = int(torch.multinomial(all_probs, num_samples=1).item())
+        # check if the selected item is the null document return no_selection_token
+        if selected_index == len(all_probs) - 1:
+            return self.no_selection_token
+        else:
+            return selected_index
+
+    def _score_documents(
+        self, user_state: torch.Tensor, docs_repr: torch.Tensor
+    ) -> torch.Tensor:
+        # Calculate cosine similarity between user_state and each document representation
+        scores = torch.sigmoid(self.model(user_state, docs_repr))
+        # normalize cosine values to 0 and 1 for convenience of training
+        # print(scores.max())
+        return scores
+
+    def score_documents(self, user_state: torch.Tensor, docs_repr: torch.Tensor):
+        self._scores = self._score_documents(user_state, docs_repr)

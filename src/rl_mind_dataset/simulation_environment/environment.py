@@ -60,7 +60,10 @@ class SlateGym(gym.Env):
         # select from the slate on item following the user choice model
         # hidden_state = self.user_state._generate_hidden_state()
         hidden_step_state = self.clicked_docs[iterator].to(self.device)
-        self.choice_model.score_documents(hidden_step_state, cdocs_feature)
+        hidden_step_state_rep = hidden_step_state.repeat(
+            (cdocs_feature.shape[0], 1)
+        ).to(self.device)
+        self.choice_model.score_documents(hidden_step_state_rep, cdocs_feature)
         selected_doc_idx = self.choice_model.choose_document()
 
         if selected_doc_idx == self.choice_model.no_selection_token:

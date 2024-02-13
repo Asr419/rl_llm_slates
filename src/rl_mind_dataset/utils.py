@@ -70,7 +70,7 @@ def save_run_wa(seed, agent, save_dict, directory: str, actor):
     print(f"Run saved successfully in: {save_dir}")
 
 
-def save_ncf(agent, directory: str):
+def save_run_ncf(agent, directory: str):
     save_path = Path(os.environ.get("SAVE_PATH"))  # type: ignore
     save_path = Path.home() / save_path
     save_path.mkdir(parents=True, exist_ok=True)

@@ -114,7 +114,7 @@ class UserState(AbstractUserState):
             if self.embedding_dict.get(key, []) is not None
             and len(self.embedding_dict.get(key, [])) > 0
         ]
-        remaining_items = 300 - len(item_list)
+        remaining_items = 40 - len(item_list)
         # item_list_arrays = [np.array(vector) for vector in item_list]
         # item_list_set = {tuple(item) for item in item_list_arrays}
         # available_vectors = [
@@ -210,7 +210,7 @@ class UserState(AbstractUserState):
         # I = torch.dot(self.user_state, selected_doc_feature)  # type: ignore
         p_positive = (similarity + 1) / 2
 
-        if torch.rand(1).to("cuda:0") < p_positive:
+        if torch.rand(1).to("cuda:0") < p_positive:  #
             self.user_state = self.user_state + (1 - similarity) * selected_doc_feature
         else:
             self.user_state = self.user_state - (1 - similarity) * selected_doc_feature

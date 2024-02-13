@@ -45,6 +45,7 @@ from rl_mind_dataset.simulation_environment.environment import SlateGym
 from rl_mind_dataset.user_modelling.choice_model import (
     CosineSimilarityChoiceModel,
     DotProductChoiceModel,
+    NCFChoiceModel,
 )
 
 from rl_mind_dataset.user_modelling.response_model import (
@@ -61,10 +62,12 @@ from rl_mind_dataset.utils import save_run, save_run_wa
 class_name_to_class = {
     "ObservedUserState": UserState,
     "DotProductChoiceModel": DotProductChoiceModel,
+    "NCFChoiceModel": NCFChoiceModel,
     "DotProductResponseModel": DotProductResponseModel,
     "TopKSlateGenerator": TopKSlateGenerator,
     "RandomSlateGenerator": RandomSlateGenerator,
     "TopKGreedySlateGenerator": TopKGreedySlateGenerator,
+    "CosineSimilarityChoiceModel": CosineSimilarityChoiceModel,
     # "DiverseSlateGenerator": DiverseSlateGenerator,
     # "GreedySlateGenerator": GreedySlateGenerator,
     # "OptimalSlateGenerator": OptimalSlateGenerator,

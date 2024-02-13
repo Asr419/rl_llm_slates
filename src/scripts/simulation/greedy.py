@@ -1,5 +1,9 @@
 from scripts.simulation_imports import *
+from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 
+# base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
+# RUN_BASE_PATH = Path(f"user_choice_model")
+# PATH = base_path / RUN_BASE_PATH / Path("model.pt")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -11,6 +15,7 @@ if __name__ == "__main__":
         help="Path to the config file.",
     )
     args = parser.parse_args()
+    # user_choice_model = torch.load(PATH)
 
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
@@ -44,7 +49,7 @@ if __name__ == "__main__":
 
         ######## Init_wandb ########
         RUN_NAME = f"Mind_Dataset_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_Greedy"
-        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
+        # wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
         user_state = UserState(device=DEVICE)
@@ -127,10 +132,15 @@ if __name__ == "__main__":
                     #     use_policy_net=True,
                     # )  # type: ignore
 
+                    # choice_scores = torch.sigmoid(
+                    #     user_choice_model(user_state_rep, candidate_docs)
+                    # ).to(DEVICE)
+
                     choice_model.score_documents(
-                        user_state=user_observed_state, docs_repr=candidate_docs
+                        user_state=user_state_rep, docs_repr=candidate_docs
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
+                    print(scores)
                     # scores = torch.softmax(scores, dim=0)
 
                     # q_val = q_val.squeeze()
@@ -182,7 +192,7 @@ if __name__ == "__main__":
             }
             # if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
             #     log_dict["loss"] = loss
-            wandb.log(log_dict, step=i_episode)
+            # wandb.log(log_dict, step=i_episode)
 
             # ###########################################################################
             # save_dict["session_length"].append(sess_length)
@@ -193,6 +203,6 @@ if __name__ == "__main__":
             # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
             # save_dict["cum_normalized"].append(cum_normalized)
 
-        wandb.finish()
+        # wandb.finish()
         # directory = f"observed_topic_slateq_{ALPHA_RESPONSE}_try_gamma"
         # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
