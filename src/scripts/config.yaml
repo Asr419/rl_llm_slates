@@ -20,9 +20,9 @@ parameters:
   lr: 1e-3
   num_episodes: 50000
   warmup_batches: 1
-  device: "cuda:0"  
+  device: "cuda:1"  
   ######## Models related parameters ########
-  slate_gen_model_cls: TopKGreedySlateGenerator
+  slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########
   nearest_neighbours: 60
   ######## Seed ########

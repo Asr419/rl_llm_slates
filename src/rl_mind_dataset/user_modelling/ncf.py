@@ -21,6 +21,8 @@ from torch.utils.data import Dataset
 from rl_mind_dataset.utils import save_run_ncf
 from tqdm import tqdm
 
+DEVICE = "cuda:1"
+
 
 class NCF(nn.Module):
     def __init__(self, num_users, num_items, embedding_dim=64, hidden_dim=64):
@@ -33,14 +35,18 @@ class NCF(nn.Module):
             nn.Linear(hidden_dim, 1),
         )
 
-    def forward(self, user_ids, item_ids, train=True):
+    def forward(
+        self, user_ids, item_ids, device: torch.device = torch.device("cpu"), train=True
+    ):
         # print(user_ids)
         user_embeds = user_ids  # torch.tensor([embedding_dict_1[item_id] for item_id in user_ids])
         item_embeds = item_ids  # torch.tensor([embedding_dict_1[item_id] for item_id in item_ids])  # Retrieve item embeddings
+        device = device
         if train:
-            concat_embeds = torch.cat([user_embeds, item_embeds], dim=1)
+            concat_embeds = torch.cat([user_embeds, item_embeds], dim=1).to(device)
         else:
-            concat_embeds = torch.cat([user_embeds, item_embeds], dim=0)
+            concat_embeds = torch.cat([user_embeds, item_embeds], dim=0).to(device)
+
         output = self.fc_layers(concat_embeds)
         return output.squeeze()
 
@@ -90,14 +96,14 @@ if __name__ == "__main__":
     # Instantiate the NCF model
     model = NCF(
         num_users=num_users, num_items=num_items, embedding_dim=50, hidden_dim=50
-    )
+    ).to(DEVICE)
 
     # Define loss function and optimizer
     criterion = (
         nn.BCEWithLogitsLoss()
     )  # Binary cross-entropy loss for binary classification
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    num_epochs = 10
+    num_epochs = 1
     for epoch in tqdm(range(num_epochs)):
         model.train()
         for batch in train_loader:
@@ -105,10 +111,10 @@ if __name__ == "__main__":
             user_ids = batch["user_id"]
 
             item_ids = batch["item_id"]
-            ratings = batch["rating"]
+            ratings = batch["rating"].to(DEVICE)
 
             optimizer.zero_grad()
-            outputs = model(user_ids, item_ids)
+            outputs = model(user_ids, item_ids, device=DEVICE)
             # print(outputs.dtype)
             # print(ratings.dtype)
             loss = criterion(outputs, ratings)

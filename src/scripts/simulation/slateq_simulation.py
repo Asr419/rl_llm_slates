@@ -1,4 +1,5 @@
 from scripts.simulation_imports import *
+from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 
 
 def optimize_model(batch):
@@ -39,7 +40,7 @@ def optimize_model(batch):
             next_state_rep, candidates, use_policy_net=False
         )  # type: ignore
 
-        choice_model.score_documents(next_state, candidates)
+        choice_model.score_documents(next_state_rep, candidates)
         scores_tens = (
             torch.Tensor(choice_model.scores).to(DEVICE).unsqueeze(dim=1)
         )  # [num_candidates, 1]
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         RUN_NAME = (
             f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
         )
-        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
+        # wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
         user_state = UserState(device=DEVICE)
@@ -146,7 +147,7 @@ if __name__ == "__main__":
 
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
-        choice_model = choice_model_cls()
+        choice_model = choice_model_cls(device=DEVICE)
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
             user_state=user_state,
@@ -211,7 +212,7 @@ if __name__ == "__main__":
                     )  # type: ignore
 
                     choice_model.score_documents(
-                        user_state=user_observed_state, docs_repr=candidate_docs
+                        user_state=user_state_rep, docs_repr=candidate_docs
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
                     # scores = torch.softmax(scores, dim=0)
@@ -301,7 +302,7 @@ if __name__ == "__main__":
             }
             if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
                 log_dict["loss"] = loss
-            wandb.log(log_dict, step=i_episode)
+            # wandb.log(log_dict, step=i_episode)
 
             # ###########################################################################
             # save_dict["session_length"].append(sess_length)
@@ -312,6 +313,6 @@ if __name__ == "__main__":
             # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
             # save_dict["cum_normalized"].append(cum_normalized)
 
-        wandb.finish()
+        # wandb.finish()
         # directory = f"observed_topic_slateq_{ALPHA_RESPONSE}_try_gamma"
         # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

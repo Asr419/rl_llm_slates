@@ -78,18 +78,22 @@ class DotProductChoiceModel(NormalizableChoiceModel):
     """A multinomial logit choice model with dot product as the scoring function."""
 
     def __init__(
-        self, satisfaction_threshold: float = 0.0, no_selection_token: int = -1
+        self,
+        satisfaction_threshold: float = 0.0,
+        no_selection_token: int = -1,
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         super().__init__(satisfaction_threshold, no_selection_token)
+        self.device = device
 
     def choose_document(self) -> int:
         assert (
             self._scores is not None
         ), "Scores are not computed yet. call score_documents() first."
 
-        all_probs = self._scores.to("cuda:0")
+        all_probs = self._scores.to(self.device)
         # add null document, by adding a score of 0 at the last postin of the tensor _scores
-        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to("cuda:0")))
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to(self.device)))
         all_probs = torch.softmax(all_probs, dim=0)
         # select the item according to the probability distribution all_probs
         selected_index = int(torch.multinomial(all_probs, num_samples=1).item())
@@ -114,17 +118,23 @@ class DotProductChoiceModel(NormalizableChoiceModel):
 class CosineSimilarityChoiceModel(NormalizableChoiceModel):
     """A multinomial logit choice model with cosine similarity as the scoring function."""
 
-    def __init__(self, satisfaction_threshold: float = 0.0) -> None:
-        super().__init__(satisfaction_threshold)
+    def __init__(
+        self,
+        satisfaction_threshold: float = 0.0,
+        no_selection_token: int = -1,
+        device: torch.device = torch.device("cpu"),
+    ) -> None:
+        super().__init__(satisfaction_threshold, no_selection_token)
+        self.device = device
 
     def choose_document(self) -> int:
         assert (
             self._scores is not None
         ), "Scores are not computed yet. call score_documents() first."
 
-        all_probs = self._scores.to("cuda:0")
+        all_probs = self._scores.to(self.device)
         # add null document, by adding a score of 0 at the last postin of the tensor _scores
-        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to("cuda:0")))
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to(self.device)))
         all_probs = torch.softmax(all_probs, dim=0)
         # select the item according to the probability distribution all_probs
         selected_index = int(torch.multinomial(all_probs, num_samples=1).item())
@@ -149,8 +159,14 @@ class CosineSimilarityChoiceModel(NormalizableChoiceModel):
 
 
 class NCFChoiceModel(NormalizableChoiceModel):
-    def __init__(self, satisfaction_threshold: float = 0.0) -> None:
-        super().__init__(satisfaction_threshold)
+    def __init__(
+        self,
+        satisfaction_threshold: float = 0.0,
+        no_selection_token: int = -1,
+        device: torch.device = torch.device("cpu"),
+    ) -> None:
+        super().__init__(satisfaction_threshold, no_selection_token)
+        self.device = device
         base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
         RUN_BASE_PATH = Path(f"user_choice_model")
         PATH = base_path / RUN_BASE_PATH / Path("model.pt")
@@ -161,9 +177,9 @@ class NCFChoiceModel(NormalizableChoiceModel):
             self._scores is not None
         ), "Scores are not computed yet. call score_documents() first."
 
-        all_probs = self._scores.to("cuda:0")
+        all_probs = self._scores.to(self.device)
         # add null document, by adding a score of 0 at the last postin of the tensor _scores
-        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to("cuda:0")))
+        all_probs = torch.cat((all_probs, torch.tensor([-1.0]).to(self.device)))
         all_probs = torch.softmax(all_probs, dim=0)
         # select the item according to the probability distribution all_probs
         selected_index = int(torch.multinomial(all_probs, num_samples=1).item())
@@ -177,7 +193,7 @@ class NCFChoiceModel(NormalizableChoiceModel):
         self, user_state: torch.Tensor, docs_repr: torch.Tensor
     ) -> torch.Tensor:
         # Calculate cosine similarity between user_state and each document representation
-        scores = torch.sigmoid(self.model(user_state, docs_repr))
+        scores = torch.sigmoid(self.model(user_state, docs_repr, device=self.device))
         # normalize cosine values to 0 and 1 for convenience of training
         # print(scores.max())
         return scores

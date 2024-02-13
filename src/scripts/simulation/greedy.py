@@ -68,7 +68,7 @@ if __name__ == "__main__":
             tau=TAU,
         ).to(DEVICE)
 
-        choice_model = choice_model_cls()
+        choice_model = choice_model_cls(device=DEVICE)
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
             user_state=user_state,
@@ -140,7 +140,7 @@ if __name__ == "__main__":
                         user_state=user_state_rep, docs_repr=candidate_docs
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
-                    print(scores)
+
                     # scores = torch.softmax(scores, dim=0)
 
                     # q_val = q_val.squeeze()
