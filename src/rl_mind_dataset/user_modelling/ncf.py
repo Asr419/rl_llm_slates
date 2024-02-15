@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import random
 from typing import Any, Type, TypeVar
+import wandb
 
 from rl_mind_dataset.document_modelling.data_reader import DatasetReader
 
@@ -21,7 +22,7 @@ from torch.utils.data import Dataset
 from rl_mind_dataset.utils import save_run_ncf
 from tqdm import tqdm
 
-DEVICE = "cuda:1"
+DEVICE = "cpu"
 
 
 class NCF(nn.Module):
@@ -72,6 +73,8 @@ class DataFrameDataset(Dataset):
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     DATA_PATH = Path.home() / Path(os.environ.get("DATA_PATH"))
+    RUN_NAME = f"User_model_NCF"
+    wandb.init(project="mind_dataset", name=RUN_NAME)
     # device = torch.device("cpu")
     interactions_path_data = DATA_PATH / Path(
         "MINDlarge_train/choice_model_data.feather"
@@ -103,7 +106,7 @@ if __name__ == "__main__":
         nn.BCEWithLogitsLoss()
     )  # Binary cross-entropy loss for binary classification
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    num_epochs = 1
+    num_epochs = 1500
     for epoch in tqdm(range(num_epochs)):
         model.train()
         for batch in train_loader:
@@ -121,5 +124,8 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
         print(f"epoch: {epoch}, loss: {loss}")
+        log_dict = {"loss": loss}
+        wandb.log(log_dict, step=epoch)
+    wandb.finish()
     directory = f"user_choice_model"
     save_run_ncf(agent=model, directory=directory)
