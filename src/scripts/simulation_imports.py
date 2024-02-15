@@ -53,6 +53,7 @@ from rl_mind_dataset.user_modelling.response_model import (
     DotProductResponseModel,
     WeightedDotProductResponseModel,
     WeightedCosineResponseModel,
+    WeightedUserNCFResponseModel,
 )
 from rl_mind_dataset.user_modelling.user_state import UserState
 
@@ -73,5 +74,6 @@ class_name_to_class = {
     # "OptimalSlateGenerator": OptimalSlateGenerator,
     "WeightedDotProductResponseModel": WeightedDotProductResponseModel,
     "WeightedCosineResponseModel": WeightedCosineResponseModel,
+    "WeightedUserNCFResponseModel": WeightedUserNCFResponseModel,
 }
 load_dotenv()

@@ -170,7 +170,7 @@ class NCFChoiceModel(NormalizableChoiceModel):
         base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
         RUN_BASE_PATH = Path(f"user_choice_model")
         PATH = base_path / RUN_BASE_PATH / Path("model.pt")
-        self.model = torch.load(PATH)
+        self.model = torch.load(PATH).to(self.device)
 
     def choose_document(self) -> int:
         assert (

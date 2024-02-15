@@ -47,7 +47,6 @@ class NCF(nn.Module):
             concat_embeds = torch.cat([user_embeds, item_embeds], dim=1).to(device)
         else:
             concat_embeds = torch.cat([user_embeds, item_embeds], dim=0).to(device)
-
         output = self.fc_layers(concat_embeds)
         return output.squeeze()
 
@@ -81,14 +80,14 @@ if __name__ == "__main__":
     )
     interactions2 = pd.read_feather(interactions_path_data)
     dataset_reader = DatasetReader()
-    if torch.cuda.is_available():
-        # Get the current CUDA device index
-        device_idx = torch.cuda.current_device()
-        # Get the name of the CUDA device
-        device_name = torch.cuda.get_device_name(device_idx)
-        print(f"Using CUDA device: {device_name}")
-    else:
-        print("CUDA is not available. Using CPU.")
+    # if torch.cuda.is_available():
+    #     # Get the current CUDA device index
+    #     device_idx = torch.cuda.current_device()
+    #     # Get the name of the CUDA device
+    #     device_name = torch.cuda.get_device_name(device_idx)
+    #     print(f"Using CUDA device: {device_name}")
+    # else:
+    #     print("CUDA is not available. Using CPU.")
 
     embedding_dict, all_item_vectors = dataset_reader.item2vecdict()
     dataset = DataFrameDataset(interactions2, embedding_dict)

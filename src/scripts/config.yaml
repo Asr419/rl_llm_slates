@@ -22,7 +22,7 @@ parameters:
   warmup_batches: 1
   device: "cuda:0"  
   ######## Models related parameters ########
-  slate_gen_model_cls: TopKSlateGenerator
+  slate_gen_model_cls: TopKGreedySlateGenerator
   ######## Wolpertinger policy ########
   nearest_neighbours: 60
   ######## Seed ########

@@ -59,7 +59,11 @@ if __name__ == "__main__":
         slate_gen = slate_gen_model_cls(slate_size=SLATE_SIZE)
 
         choice_model_kwgs = {}
-        response_model_kwgs = {"amp_factor": resp_amp_factor, "alpha": ALPHA_RESPONSE}
+        response_model_kwgs = {
+            "amp_factor": resp_amp_factor,
+            "alpha": ALPHA_RESPONSE,
+            "device": DEVICE,
+        }
         # input features are 2 * NUM_ITEM_FEATURES since we concatenate the state and one item
         agent = DQNAgent(
             slate_gen=slate_gen,

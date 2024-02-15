@@ -1,5 +1,7 @@
 import abc
 from typing import Any
+import os
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
@@ -68,6 +70,7 @@ class WeightedDotProductResponseModel:
         self,
         amp_factor: int = 1,
         alpha: float = 1.0,
+        device: torch.device = torch.device("cpu"),
         null_response: float = -1.0,
         **kwds: Any,
     ) -> None:
@@ -110,6 +113,7 @@ class WeightedCosineResponseModel:
         self,
         amp_factor: int = 1,
         alpha: float = 1.0,
+        device: torch.device = torch.device("cpu"),
         null_response: float = -1.0,
         **kwds: Any,
     ) -> None:
@@ -156,6 +160,7 @@ class WeightedUserNCFResponseModel:
         self,
         amp_factor: int = 1,
         alpha: float = 1.0,
+        device: torch.device = torch.device("cpu"),
         null_response: float = -1.0,
         **kwds: Any,
     ) -> None:
@@ -163,6 +168,11 @@ class WeightedUserNCFResponseModel:
         self.amp_factor = amp_factor
         self.alpha = alpha
         self.null_response = null_response
+        self.device = device
+        base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
+        RUN_BASE_PATH = Path(f"user_choice_model")
+        PATH = base_path / RUN_BASE_PATH / Path("model.pt")
+        self.model = torch.load(PATH).to(self.device)
 
     def _generate_response(
         self,
@@ -172,11 +182,15 @@ class WeightedUserNCFResponseModel:
         **kwargs,
     ) -> torch.Tensor:
         satisfaction = torch.sigmoid(
-            self.model(estimated_user_state, selected_doc, train=False)
+            self.model(
+                estimated_user_state, selected_doc, train=False, device=self.device
+            )
         )
 
         doc_quality = torch.sigmoid(
-            self.model(selected_doc, actual_clicked_doc, train=False)
+            self.model(
+                selected_doc, actual_clicked_doc, train=False, device=self.device
+            )
         )
 
         response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
