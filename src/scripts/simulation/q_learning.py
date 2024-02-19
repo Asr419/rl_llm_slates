@@ -110,8 +110,12 @@ if __name__ == "__main__":
         response_model_cls = class_name_to_class[response_model_cls]
         slate_gen = slate_gen_model_cls(slate_size=SLATE_SIZE)
 
-        choice_model_kwgs = {}
-        response_model_kwgs = {"amp_factor": resp_amp_factor, "alpha": ALPHA_RESPONSE}
+        choice_model_kwgs = {"device": DEVICE}
+        response_model_kwgs = {
+            "amp_factor": resp_amp_factor,
+            "alpha": ALPHA_RESPONSE,
+            "device": DEVICE,
+        }
         # input features are 2 * NUM_ITEM_FEATURES since we concatenate the state and one item
         agent = DQNAgent(
             slate_gen=slate_gen,
@@ -133,7 +137,7 @@ if __name__ == "__main__":
 
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
-        choice_model = choice_model_cls()
+        choice_model = choice_model_cls(**choice_model_kwgs)
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
             user_state=user_state,
@@ -300,5 +304,5 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        # directory = f"observed_topic_slateq_{ALPHA_RESPONSE}_try_gamma"
-        # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
+        directory = f"qlearning_{ALPHA_RESPONSE}_try_gamma"
+        save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

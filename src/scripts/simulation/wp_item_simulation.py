@@ -39,12 +39,12 @@ def optimize_model(batch, batch_size):
             next_state_rep, candidates, use_policy_net=False
         )  # type: ignore
 
-        choice_model.score_documents(next_state, candidates)
+        choice_model.score_documents(next_state_rep, candidates)
         scores_tens = (
             torch.Tensor(choice_model.scores).to(DEVICE).unsqueeze(dim=1)
         )  # [num_candidates, 1]
         # retrieve max_a Q(s', a)
-        scores_tens = torch.softmax(scores_tens, dim=0)
+        # scores_tens = torch.softmax(scores_tens, dim=0)
 
         topk = torch.topk((cand_qtgt * scores_tens), dim=0, k=SLATE_SIZE)
 
@@ -132,8 +132,12 @@ if __name__ == "__main__":
         response_model_cls = class_name_to_class[response_model_cls]
         slate_gen = slate_gen_model_cls(slate_size=SLATE_SIZE)
 
-        choice_model_kwgs = {}
-        response_model_kwgs = {"amp_factor": resp_amp_factor, "alpha": ALPHA_RESPONSE}
+        choice_model_kwgs = {"device": DEVICE}
+        response_model_kwgs = {
+            "amp_factor": resp_amp_factor,
+            "alpha": ALPHA_RESPONSE,
+            "device": DEVICE,
+        }
         # input features are 2 * NUM_ITEM_FEATURES since we concatenate the state and one item
         agent = DQNAgent(
             slate_gen=slate_gen,
@@ -157,7 +161,7 @@ if __name__ == "__main__":
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
         actor_optimizer = optim.Adam(actor.parameters(), lr=LR)
-        choice_model = choice_model_cls()
+        choice_model = choice_model_cls(**choice_model_kwgs)
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
             user_state=user_state,
@@ -225,7 +229,7 @@ if __name__ == "__main__":
                     )  # type: ignore
 
                     choice_model.score_documents(
-                        user_state=user_observed_state, docs_repr=cdocs_features_act
+                        user_state=user_state_rep, docs_repr=cdocs_features_act
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
                     # scores = torch.softmax(scores, dim=0)
@@ -331,5 +335,11 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        # directory = f"observed_topic_slateq_{ALPHA_RESPONSE}_try_gamma"
-        # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
+        directory = f"wpitem_{ALPHA_RESPONSE}_try_gamma"
+        save_run_wa(
+            seed=seed,
+            save_dict=save_dict,
+            agent=agent,
+            directory=directory,
+            actor=actor,
+        )

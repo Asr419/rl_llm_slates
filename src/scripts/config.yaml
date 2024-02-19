@@ -3,7 +3,7 @@ parameters:
   resp_amp_factor: 1.0
   state_model_cls: ObservedUserState
   choice_model_cls: NCFChoiceModel
-  response_model_cls: WeightedCosineResponseModel
+  response_model_cls: WeightedUserNCFResponseModel
   ######## Environment related parameters ########
   num_users: 5000
   sess_budget: 200
@@ -18,8 +18,8 @@ parameters:
   gamma: 1.0
   tau: 0.001
   lr: 1e-3
-  num_episodes: 50000
-  warmup_batches: 1
+  num_episodes: 20000
+  warmup_batches: 5
   device: "cuda:0"  
   ######## Models related parameters ########
   slate_gen_model_cls: TopKGreedySlateGenerator

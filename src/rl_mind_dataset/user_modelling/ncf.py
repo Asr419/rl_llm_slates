@@ -22,7 +22,7 @@ from torch.utils.data import Dataset
 from rl_mind_dataset.utils import save_run_ncf
 from tqdm import tqdm
 
-DEVICE = "cpu"
+DEVICE = "cuda:0"
 
 
 class NCF(nn.Module):
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     criterion = (
         nn.BCEWithLogitsLoss()
     )  # Binary cross-entropy loss for binary classification
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
     num_epochs = 1500
     for epoch in tqdm(range(num_epochs)):
         model.train()

@@ -58,7 +58,7 @@ if __name__ == "__main__":
         response_model_cls = class_name_to_class[response_model_cls]
         slate_gen = slate_gen_model_cls(slate_size=SLATE_SIZE)
 
-        choice_model_kwgs = {}
+        choice_model_kwgs = {"device": DEVICE}
         response_model_kwgs = {
             "amp_factor": resp_amp_factor,
             "alpha": ALPHA_RESPONSE,
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             tau=TAU,
         ).to(DEVICE)
 
-        choice_model = choice_model_cls(device=DEVICE)
+        choice_model = choice_model_cls(**choice_model_kwgs)
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
             user_state=user_state,
