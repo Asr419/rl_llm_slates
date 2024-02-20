@@ -115,7 +115,7 @@ if __name__ == "__main__":
         RUN_NAME = (
             f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
         )
-        # wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
+        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
         user_state = UserState(device=DEVICE)
@@ -306,7 +306,7 @@ if __name__ == "__main__":
             }
             if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
                 log_dict["loss"] = loss
-            # wandb.log(log_dict, step=i_episode)
+            wandb.log(log_dict, step=i_episode)
 
             # ###########################################################################
             # save_dict["session_length"].append(sess_length)
@@ -317,6 +317,6 @@ if __name__ == "__main__":
             # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
             # save_dict["cum_normalized"].append(cum_normalized)
 
-        # wandb.finish()
+        wandb.finish()
         directory = f"slateq_{ALPHA_RESPONSE}_try_gamma"
         save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

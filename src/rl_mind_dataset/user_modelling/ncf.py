@@ -22,7 +22,7 @@ from torch.utils.data import Dataset
 from rl_mind_dataset.utils import save_run_ncf
 from tqdm import tqdm
 
-DEVICE = "cuda:0"
+DEVICE = "cuda:1"
 
 
 class NCF(nn.Module):
@@ -32,8 +32,14 @@ class NCF(nn.Module):
         self.item_embedding = nn.Embedding(num_items, embedding_dim)
         self.fc_layers = nn.Sequential(
             nn.Linear(2 * embedding_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, 1),
+            nn.LeakyReLU(0.1),
+            nn.Linear(hidden_dim, 32),
+            nn.LeakyReLU(0.1),
+            nn.Linear(32, 16),
+            nn.LeakyReLU(0.1),
+            nn.Linear(16, 8),
+            nn.LeakyReLU(0.1),
+            nn.Linear(8, 1),
         )
 
     def forward(
@@ -126,5 +132,5 @@ if __name__ == "__main__":
         log_dict = {"loss": loss}
         wandb.log(log_dict, step=epoch)
     wandb.finish()
-    directory = f"user_choice_model"
+    directory = f"user_choice_model_1"
     save_run_ncf(agent=model, directory=directory)

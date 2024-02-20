@@ -11,18 +11,18 @@ parameters:
   num_item_features: 50
   num_candidates: 2000
   num_user_features: 20
-  alpha_response: 0.5
+  alpha_response: 0.0
   ######## Training related parameters ########
-  replay_memory_capacity: 1000
+  replay_memory_capacity: 2000
   batch_size: 256
   gamma: 1.0
   tau: 0.001
   lr: 1e-3
-  num_episodes: 20000
-  warmup_batches: 5
+  num_episodes: 50000
+  warmup_batches: 1
   device: "cuda:0"  
   ######## Models related parameters ########
-  slate_gen_model_cls: TopKGreedySlateGenerator
+  slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########
   nearest_neighbours: 60
   ######## Seed ########
