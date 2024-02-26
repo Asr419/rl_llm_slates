@@ -42,7 +42,9 @@ class AbstractUserState(nn.Module, metaclass=abc.ABCMeta):
 
 
 class UserState(AbstractUserState):
-    def __init__(self, device: torch.device = torch.device("cpu"), **kwds: Any) -> None:
+    def __init__(
+        self, device: torch.device = torch.device("cpu"), test=False, **kwds: Any
+    ) -> None:
         super().__init__(**kwds)
         self.DATA_PATH = Path.home() / Path(os.environ.get("DATA_PATH"))
         self.dataset_reader = DatasetReader()
@@ -50,14 +52,20 @@ class UserState(AbstractUserState):
         self.user_state: Tensor = None
         self.clicked_items = []
         self.device = device
-
-        self.dataset_interaction_path = self.DATA_PATH / Path(
-            "MINDlarge_train/interaction_all_50.feather"
-        )
-        self.interaction_data = pd.read_feather(self.dataset_interaction_path)
-        self.dataset_path = self.DATA_PATH / Path(
-            "MINDlarge_train/interaction_all_50.feather"
-        )
+        if test:
+            self.dataset_interaction_path = self.DATA_PATH / Path(
+                "MINDlarge_train/test_50.feather"
+            )
+            self.interaction_data = pd.read_feather(self.dataset_interaction_path)
+            self.dataset_path = self.DATA_PATH / Path("MINDlarge_train/test_50.feather")
+        else:
+            self.dataset_interaction_path = self.DATA_PATH / Path(
+                "MINDlarge_train/interaction_all_50.feather"
+            )
+            self.interaction_data = pd.read_feather(self.dataset_interaction_path)
+            self.dataset_path = self.DATA_PATH / Path(
+                "MINDlarge_train/interaction_all_50.feather"
+            )
         self.category_data = pd.read_feather(self.dataset_path)
         device: torch.device = (torch.device("cpu"),)
         self.embedding_dict, self.all_item_vectors = self.dataset_reader.item2vecdict()

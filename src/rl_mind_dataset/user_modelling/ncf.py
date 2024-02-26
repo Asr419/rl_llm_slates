@@ -32,14 +32,16 @@ class NCF(nn.Module):
         self.item_embedding = nn.Embedding(num_items, embedding_dim)
         self.fc_layers = nn.Sequential(
             nn.Linear(2 * embedding_dim, hidden_dim),
-            nn.LeakyReLU(0.1),
-            nn.Linear(hidden_dim, 32),
-            nn.LeakyReLU(0.1),
-            nn.Linear(32, 16),
-            nn.LeakyReLU(0.1),
-            nn.Linear(16, 8),
-            nn.LeakyReLU(0.1),
-            nn.Linear(8, 1),
+            nn.LeakyReLU(0.2),
+            nn.Linear(hidden_dim, 60),
+            nn.LeakyReLU(0.2),
+            nn.Linear(60, 40),
+            nn.LeakyReLU(0.2),
+            nn.Linear(40, 20),
+            nn.LeakyReLU(0.2),
+            nn.Linear(20, 10),
+            nn.LeakyReLU(0.2),
+            nn.Linear(10, 1),
         )
 
     def forward(
@@ -103,14 +105,14 @@ if __name__ == "__main__":
 
     # Instantiate the NCF model
     model = NCF(
-        num_users=num_users, num_items=num_items, embedding_dim=50, hidden_dim=50
+        num_users=num_users, num_items=num_items, embedding_dim=50, hidden_dim=80
     ).to(DEVICE)
 
     # Define loss function and optimizer
     criterion = (
         nn.BCEWithLogitsLoss()
     )  # Binary cross-entropy loss for binary classification
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-3)
     num_epochs = 1500
     for epoch in tqdm(range(num_epochs)):
         model.train()

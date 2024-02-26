@@ -37,6 +37,7 @@ class SlateGym(gym.Env):
         slate: torch.Tensor,
         iterator: int,
         cdocs_subset_idx: Optional[torch.Tensor] = None,
+        test=False,
     ):
         if cdocs_subset_idx is not None:
             cdocs_subset_idx = cdocs_subset_idx.to(self.device)
@@ -88,11 +89,13 @@ class SlateGym(gym.Env):
                 selected_doc_feature.to(self.device),
                 self.clicked_docs[iterator].to(self.device),
             )
-
+        if test:
+            next_user_state = torch.zeros(50).to(self.device)
+        else:
             # update user state
-        next_user_state = self.user_state.update_state(
-            selected_doc_feature=selected_doc_feature.to(self.device)
-        )
+            next_user_state = self.user_state.update_state(
+                selected_doc_feature=selected_doc_feature.to(self.device)
+            )
 
         if len(self.clicked_docs) == iterator:
             self.is_terminal = True

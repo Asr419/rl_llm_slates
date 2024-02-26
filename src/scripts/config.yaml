@@ -3,7 +3,7 @@ parameters:
   resp_amp_factor: 1.0
   state_model_cls: ObservedUserState
   choice_model_cls: NCFChoiceModel
-  response_model_cls: WeightedUserNCFResponseModel
+  response_model_cls: WeightedCosineResponseModel
   ######## Environment related parameters ########
   num_users: 5000
   sess_budget: 200
@@ -16,13 +16,13 @@ parameters:
   replay_memory_capacity: 2000
   batch_size: 256
   gamma: 1.0
-  tau: 0.001
+  tau: 0.0001
   lr: 1e-3
-  num_episodes: 50000
+  num_episodes: 10000
   warmup_batches: 1
-  device: "cuda:0"  
+  device: "cuda:1"  
   ######## Models related parameters ########
-  slate_gen_model_cls: TopKSlateGenerator
+  slate_gen_model_cls: TopKGreedySlateGenerator
   ######## Wolpertinger policy ########
   nearest_neighbours: 60
   ######## Seed ########

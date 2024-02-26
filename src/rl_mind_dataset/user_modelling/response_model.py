@@ -170,7 +170,7 @@ class WeightedUserNCFResponseModel:
         self.null_response = null_response
         self.device = device
         base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
-        RUN_BASE_PATH = Path(f"user_choice_model")
+        RUN_BASE_PATH = Path(f"user_choice_model_1")
         PATH = base_path / RUN_BASE_PATH / Path("model.pt")
         self.model = torch.load(PATH).to(self.device)
 
