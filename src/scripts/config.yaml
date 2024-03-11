@@ -7,7 +7,7 @@ parameters:
   ######## Environment related parameters ########
   num_users: 5000
   sess_budget: 200
-  slate_size: 10
+  slate_size: 5
   num_item_features: 50
   num_candidates: 2000
   num_user_features: 20
@@ -22,7 +22,7 @@ parameters:
   warmup_batches: 1
   device: "cuda:1"  
   ######## Models related parameters ########
-  slate_gen_model_cls: TopKGreedySlateGenerator
+  slate_gen_model_cls: RandomSlateGenerator
   ######## Wolpertinger policy ########
   nearest_neighbours: 60
   ######## Seed ########
@@ -36,5 +36,5 @@ parameters:
   #[5, 7, 9, 11, 13, 17]
   #[5, 7, 77, 79, 81, 42, 11, 13, 17]
   ######## Grouping ########
-  grouping: "Proto-Slate1"
+  grouping: "RandomSlate"
   

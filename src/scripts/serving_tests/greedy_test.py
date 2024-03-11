@@ -6,7 +6,7 @@ from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 # PATH = base_path / RUN_BASE_PATH / Path("model.pt")
 DEVICE = "cuda:0"
 if __name__ == "__main__":
-    NUM_EPISODES = 1000
+    NUM_EPISODES = 500
     parser = argparse.ArgumentParser()
     config_path = "src/scripts/config.yaml"
     parser.add_argument(
@@ -22,7 +22,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     parameters = config["parameters"]
-    SEEDS = parameters["seeds"]
+    SEEDS = [1, 3, 7]
     for seed in SEEDS:
         pl.seed_everything(seed)
         resp_amp_factor = parameters["resp_amp_factor"]
@@ -161,34 +161,34 @@ if __name__ == "__main__":
                         _,
                         _,
                         diverse_score,
-                    ) = env.step(slate, iterator=i, cdocs_subset_idx=None, test=True)
-                    quality.append(0.0)
+                    ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
+                    # quality.append(0.0)
 
-                    for row1 in candidate_docs[slate, :]:
-                        for row2 in actual_selected_items:
-                            if torch.all(torch.eq(row1, row2)):
-                                selected_doc_feature = row1
-                                response = response_model._generate_response(
-                                    user_state._generate_hidden_state().to(DEVICE),
-                                    selected_doc_feature.to(DEVICE),
-                                    row2,
-                                )
-                                clicked_docs_lists = [
-                                    tensor.tolist() for tensor in clicked_docs
-                                ]
-                                index = clicked_docs_lists.index(row2.tolist())
-                                actual_selected_items = torch.cat(
-                                    (clicked_docs[:index], clicked_docs[index + 1 :]),
-                                    dim=0,
-                                )
+                    # for row1 in candidate_docs[slate, :]:
+                    #     for row2 in actual_selected_items:
+                    #         if torch.all(torch.eq(row1, row2)):
+                    #             selected_doc_feature = row1
+                    #             response = response_model._generate_response(
+                    #                 user_state._generate_hidden_state().to(DEVICE),
+                    #                 selected_doc_feature.to(DEVICE),
+                    #                 row2,
+                    #             )
+                    #             clicked_docs_lists = [
+                    #                 tensor.tolist() for tensor in clicked_docs
+                    #             ]
+                    #             index = clicked_docs_lists.index(row2.tolist())
+                    #             actual_selected_items = torch.cat(
+                    #                 (clicked_docs[:index], clicked_docs[index + 1 :]),
+                    #                 dim=0,
+                    #             )
 
-                                quality.pop()
-                                quality.append(1.0)
-                                break
+                    #             quality.pop()
+                    #             quality.append(1.0)
+                    #             break
 
-                    next_user_state = user_state.update_state(
-                        selected_doc_feature=selected_doc_feature.to(DEVICE)
-                    )
+                    # next_user_state = user_state.update_state(
+                    #     selected_doc_feature=selected_doc_feature.to(DEVICE)
+                    # )
                     satisfaction.append(response)
 
                     user_observed_state = next_user_state

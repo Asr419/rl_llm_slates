@@ -27,12 +27,12 @@ def optimize_model(batch, batch_size):
             next_state_rep, candidates, use_policy_net=False
         )  # type: ignore
 
-        choice_model.score_documents(next_state, candidates)
+        choice_model.score_documents(next_state_rep, candidates)
         scores_tens = (
             torch.Tensor(choice_model.scores).to(DEVICE).unsqueeze(dim=1)
         )  # [num_candidates, 1]
         # retrieve max_a Q(s', a)
-        scores_tens = torch.softmax(scores_tens, dim=0)
+        # scores_tens = torch.softmax(scores_tens, dim=0)
 
         topk = torch.topk((cand_qtgt * scores_tens), dim=0, k=SLATE_SIZE)
 
@@ -86,7 +86,7 @@ def optimize_model(batch, batch_size):
         )
         with torch.no_grad():
             detached_scores = choice_model._score_documents(
-                state, proto_action_tensor_rep
+                user_state_rep, proto_action_tensor_rep
             ).detach()
             # [num_candidates, 1]
         scores_tens_loss = torch.Tensor(detached_scores).to(DEVICE).unsqueeze(dim=1)
@@ -171,8 +171,12 @@ if __name__ == "__main__":
         response_model_cls = class_name_to_class[response_model_cls]
         slate_gen = slate_gen_model_cls(slate_size=SLATE_SIZE)
 
-        choice_model_kwgs = {}
-        response_model_kwgs = {"amp_factor": resp_amp_factor, "alpha": ALPHA_RESPONSE}
+        choice_model_kwgs = {"device": DEVICE}
+        response_model_kwgs = {
+            "amp_factor": resp_amp_factor,
+            "alpha": ALPHA_RESPONSE,
+            "device": DEVICE,
+        }
         # input features are 2 * NUM_ITEM_FEATURES since we concatenate the state and one item
         agent = DQNAgent(
             slate_gen=slate_gen,
@@ -193,10 +197,11 @@ if __name__ == "__main__":
         )
         actor = ActorAgentSlate(
             nn_dim=[
+                50,
                 100,
+                150,
                 200,
-                300,
-                400,
+                250,
             ],  # observable= [20, 40, 60, 80, 100], weight_decay=1e-4
             k=int(NEAREST_NEIGHBOURS / SLATE_SIZE),
             slate_size=SLATE_SIZE,
@@ -275,10 +280,10 @@ if __name__ == "__main__":
                     )  # type: ignore
 
                     choice_model.score_documents(
-                        user_state=user_observed_state, docs_repr=cdocs_features_act
+                        user_state=user_state_rep, docs_repr=cdocs_features_act
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
-                    scores = torch.softmax(scores, dim=0)
+                    # scores = torch.softmax(scores, dim=0)
 
                     q_val = q_val.squeeze()
                     slate = agent.get_action(scores, q_val)
@@ -384,5 +389,5 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        # directory = f"observed_topic_slateq_{ALPHA_RESPONSE}_try_gamma"
-        # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
+        directory = f"wpslate_{ALPHA_RESPONSE}_try_gamma"
+        save_run_wa(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

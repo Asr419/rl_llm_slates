@@ -35,9 +35,7 @@ class TopKSlateGenerator(AbstractSlateGenerator):
 
 
 class RandomSlateGenerator(AbstractSlateGenerator):
-    def __call__(
-        self, docs_scores: torch.Tensor, docs_qvalues: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, docs_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         slate_ids = torch.randint(
             low=0, high=len(docs_scores) - 1, size=(self.slate_size,)
         )

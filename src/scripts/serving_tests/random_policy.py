@@ -1,33 +1,30 @@
 from scripts.simulation_imports import *
 from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 
+# base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
+# RUN_BASE_PATH = Path(f"user_choice_model")
+# PATH = base_path / RUN_BASE_PATH / Path("model.pt")
 DEVICE = "cuda:0"
-print("DEVICE: ", DEVICE)
-load_dotenv()
-base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
 if __name__ == "__main__":
-    SEEDS = [1, 3, 7]
     NUM_EPISODES = 500
-    for seed in tqdm(SEEDS):
+    parser = argparse.ArgumentParser()
+    config_path = "src/scripts/config.yaml"
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=config_path,
+        help="Path to the config file.",
+    )
+    args = parser.parse_args()
+    # user_choice_model = torch.load(PATH)
 
-        ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"slateq_{ALPHA}_2_gamma_5")
-        parser = argparse.ArgumentParser()
-        config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
-        parser.add_argument(
-            "--config",
-            type=str,
-            default=config_path,
-            help="Path to the config file.",
-        )
-        args = parser.parse_args()
-        with open(args.config, "r") as f:
-            config = yaml.safe_load(f)
+    with open(args.config, "r") as f:
+        config = yaml.safe_load(f)
 
-        parameters = config["parameters"]
+    parameters = config["parameters"]
+    SEEDS = [1, 3, 7]
+    for seed in SEEDS:
         pl.seed_everything(seed)
-        PATH = base_path / RUN_BASE_PATH / Path("model.pt")
-
         resp_amp_factor = parameters["resp_amp_factor"]
 
         ######## Training related parameters ########
@@ -44,15 +41,18 @@ if __name__ == "__main__":
         WARMUP_BATCHES = parameters["warmup_batches"]
 
         ALPHA_RESPONSE = parameters["alpha_response"]
-
+        DEVICE = torch.device(DEVICE)
+        print("DEVICE: ", DEVICE)
         ######## Models related parameters ########
         slate_gen_model_cls = parameters["slate_gen_model_cls"]
         choice_model_cls = parameters["choice_model_cls"]
         response_model_cls = parameters["response_model_cls"]
 
-        RUN_NAME = f"Test_{seed}_ALPHA_{ALPHA_RESPONSE}_SlateQ"
+        ######## Init_wandb ########
+        RUN_NAME = f"Test_{seed}_ALPHA_{ALPHA_RESPONSE}_random"
         wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
+        ################################################################
         user_state = UserState(device=DEVICE, test=True)
         slate_gen_model_cls = class_name_to_class[slate_gen_model_cls]
         choice_model_cls = class_name_to_class[choice_model_cls]
@@ -65,23 +65,14 @@ if __name__ == "__main__":
             "alpha": ALPHA_RESPONSE,
             "device": DEVICE,
         }
-
         # input features are 2 * NUM_ITEM_FEATURES since we concatenate the state and one item
-        agent = torch.load(PATH).to(DEVICE)
+        agent = DQNAgent(
+            slate_gen=slate_gen,
+            input_size=2 * NUM_ITEM_FEATURES,
+            output_size=1,
+            tau=TAU,
+        ).to(DEVICE)
 
-        transition_cls = Transition
-        replay_memory_dataset = ReplayMemoryDataset(
-            capacity=REPLAY_MEMORY_CAPACITY, transition_cls=transition_cls
-        )
-        replay_memory_dataloader = DataLoader(
-            replay_memory_dataset,
-            batch_size=BATCH_SIZE,
-            collate_fn=replay_memory_dataset.collate_fn,
-            shuffle=False,
-        )
-
-        criterion = torch.nn.SmoothL1Loss()
-        optimizer = optim.Adam(agent.parameters(), lr=LR)
         choice_model = choice_model_cls(**choice_model_kwgs)
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
@@ -90,7 +81,7 @@ if __name__ == "__main__":
             response_model=response_model,
             device=DEVICE,
         )
-        # torch.cuda.set_device(DEVICE)
+        torch.cuda.set_device(DEVICE)
 
         ############################## TRAINING ###################################
         save_dict = defaultdict(list)
@@ -141,20 +132,25 @@ if __name__ == "__main__":
                         (candidate_docs.shape[0], 1)
                     ).to(DEVICE)
 
-                    q_val = agent.compute_q_values(
-                        state=user_state_rep,
-                        candidate_docs_repr=candidate_docs,
-                        use_policy_net=True,
-                    )  # type: ignore
+                    # q_val = agent.compute_q_values(
+                    #     state=user_state_rep,
+                    #     candidate_docs_repr=candidate_docs,
+                    #     use_policy_net=True,
+                    # )  # type: ignore
 
-                    choice_model.score_documents(
-                        user_state=user_state_rep, docs_repr=candidate_docs
-                    )
-                    scores = torch.Tensor(choice_model.scores).to(DEVICE)
+                    # choice_scores = torch.sigmoid(
+                    #     user_choice_model(user_state_rep, candidate_docs)
+                    # ).to(DEVICE)
+
+                    # choice_model.score_documents(
+                    #     user_state=user_state_rep, docs_repr=candidate_docs
+                    # )
+                    scores = torch.ones(300).to(DEVICE)
+
                     # scores = torch.softmax(scores, dim=0)
 
-                    q_val = q_val.squeeze()
-                    slate = agent.get_action(scores, q_val)
+                    # q_val = q_val.squeeze()
+                    slate = agent.get_random_action(scores)
                     # print("slate: ", slate)
 
                     (
@@ -166,69 +162,44 @@ if __name__ == "__main__":
                         _,
                         diverse_score,
                     ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
-                    # normalize satisfaction between 0 and 1
-                    # response = (response - min_rew) / (max_rew - min_rew)
                     quality.append(0.0)
 
-                    # for row1 in candidate_docs[slate, :]:
-                    #     for row2 in actual_selected_items:
-                    #         if torch.all(torch.eq(row1, row2)):
-                    #             selected_doc_feature = row1
-                    #             response = response_model._generate_response(
-                    #                 user_state._generate_hidden_state().to(DEVICE),
-                    #                 selected_doc_feature.to(DEVICE),
-                    #                 row2,
-                    #             )
-                    #             clicked_docs_lists = [
-                    #                 tensor.tolist() for tensor in clicked_docs
-                    #             ]
-                    #             index = clicked_docs_lists.index(row2.tolist())
-                    #             actual_selected_items = torch.cat(
-                    #                 (clicked_docs[:index], clicked_docs[index + 1 :]),
-                    #                 dim=0,
-                    #             )
+                    for row1 in candidate_docs[slate, :]:
+                        for row2 in actual_selected_items:
+                            if torch.all(torch.eq(row1, row2)):
+                                selected_doc_feature = row1
+                                response = response_model._generate_response(
+                                    user_state._generate_hidden_state().to(DEVICE),
+                                    selected_doc_feature.to(DEVICE),
+                                    row2,
+                                )
+                                clicked_docs_lists = [
+                                    tensor.tolist() for tensor in clicked_docs
+                                ]
+                                index = clicked_docs_lists.index(row2.tolist())
+                                actual_selected_items = torch.cat(
+                                    (clicked_docs[:index], clicked_docs[index + 1 :]),
+                                    dim=0,
+                                )
 
-                    #             quality.pop()
-                    #             quality.append(1.0)
-                    #             break
+                                quality.pop()
+                                quality.append(1.0)
+                                break
 
-                    # next_user_state = user_state.update_state(
-                    #     selected_doc_feature=selected_doc_feature.to(DEVICE)
-                    # )
+                    next_user_state = user_state.update_state(
+                        selected_doc_feature=selected_doc_feature.to(DEVICE)
+                    )
                     satisfaction.append(response)
-                    # check that not null document has been selected
-                    # if not torch.all(selected_doc_feature == 0):
-                    #     # append 4 document length
-
-                    #     # push memory
-                    #     replay_memory_dataset.push(
-                    #         transition_cls(
-                    #             user_observed_state,  # type: ignore
-                    #             selected_doc_feature,
-                    #             candidate_docs,
-                    #             response,
-                    #             next_user_state,  # type: ignore
-                    #         )
-                    #     )
 
                     user_observed_state = next_user_state
-                    # user_state = user_state / user_state.sum()
 
             sess_length = np.sum(time_unit_consumed)
             ep_quality = torch.mean(torch.tensor(quality))
             ep_avg_satisfaction = torch.mean(torch.tensor(satisfaction))
             ep_cum_satisfaction = torch.sum(torch.tensor(satisfaction))
-            # ep_max_avg = torch.mean(torch.tensor(max_sess))
-            # ep_max_cum = torch.sum(torch.tensor(max_sess))
-            # ep_avg_avg = torch.mean(torch.tensor(avg_sess))
-            # ep_avg_cum = torch.sum(torch.tensor(avg_sess))
-            # cum_normalized = (
-            #     ep_cum_satisfaction / ep_max_cum
-            #     if ep_max_cum > 0
-            #     else ep_max_cum / ep_cum_satisfaction
-            # )
 
             log_str = (
+                # f"Loss: {loss}\n"
                 f"Avg_satisfaction: {ep_avg_satisfaction} - Cum_Rew: {ep_cum_satisfaction}\n"
                 #     f"Max_Avg_satisfaction: {ep_max_avg} - Max_Cum_Rew: {ep_max_cum}\n"
                 #     f"Avg_Avg_satisfaction: {ep_avg_avg} - Avg_Cum_Rew: {ep_avg_cum}\n"
@@ -237,7 +208,6 @@ if __name__ == "__main__":
                 f"Diverse_score: {diverse_score}\n"
             )
             print(log_str)
-
             ###########################################################################
             log_dict = {
                 "quality": ep_quality,
@@ -252,18 +222,17 @@ if __name__ == "__main__":
                 # "cum_normalized": cum_normalized,
                 "diverse_score": diverse_score,
             }
-
+            # if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
+            #     log_dict["loss"] = loss
             wandb.log(log_dict, step=i_episode)
 
-        #     # ###########################################################################
-        #     # save_dict["session_length"].append(sess_length)
-        #     # save_dict["ep_cum_satisfaction"].append(ep_cum_satisfaction)
-        #     # save_dict["ep_avg_satisfaction"].append(ep_avg_satisfaction)
-        #     # save_dict["loss"].append(loss)
-        #     # save_dict["best_rl_avg_diff"].append(ep_max_avg - ep_avg_satisfaction)
-        #     # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
-        #     # save_dict["cum_normalized"].append(cum_normalized)
+            # ###########################################################################
+            # save_dict["session_length"].append(sess_length)
+            # save_dict["ep_cum_satisfaction"].append(ep_cum_satisfaction)
+            # save_dict["ep_avg_satisfaction"].append(ep_avg_satisfaction)
+            # save_dict["loss"].append(loss)
+            # save_dict["best_rl_avg_diff"].append(ep_max_avg - ep_avg_satisfaction)
+            # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
+            # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        # directory = f"slateq_{ALPHA_RESPONSE}"
-        # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
