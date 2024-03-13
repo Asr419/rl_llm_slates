@@ -11,7 +11,7 @@ if __name__ == "__main__":
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"slateq_{ALPHA}_2_gamma_5")
+        RUN_BASE_PATH = Path(f"diverse_wpslate_{ALPHA}_try_gamma_5")
         parser = argparse.ArgumentParser()
         config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
         parser.add_argument(
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         parameters = config["parameters"]
         pl.seed_everything(seed)
         PATH = base_path / RUN_BASE_PATH / Path("model.pt")
-
+        ACTOR_PATH = base_path / RUN_BASE_PATH / Path("actor.pt")
         resp_amp_factor = parameters["resp_amp_factor"]
 
         ######## Training related parameters ########
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         choice_model_cls = parameters["choice_model_cls"]
         response_model_cls = parameters["response_model_cls"]
 
-        RUN_NAME = f"Test_{seed}_SlateQ"
+        RUN_NAME = f"Test_{seed}_WP_SLATE"
         wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         user_state = UserState(device=DEVICE, test=True)
@@ -79,6 +79,7 @@ if __name__ == "__main__":
             collate_fn=replay_memory_dataset.collate_fn,
             shuffle=False,
         )
+        actor = torch.load(ACTOR_PATH).to(DEVICE)
 
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
@@ -136,19 +137,24 @@ if __name__ == "__main__":
                     # max_sess.append(max_rew)
                     # avg_sess.append(mean_rew)
                     ########################################
-
+                    cdocs_features_act, candidates = actor.k_nearest(
+                        user_observed_state,
+                        candidate_docs,
+                        slate_size=SLATE_SIZE,
+                        use_actor_policy_net=True,
+                    )
                     user_state_rep = user_observed_state.repeat(
                         (candidate_docs.shape[0], 1)
                     ).to(DEVICE)
 
                     q_val = agent.compute_q_values(
                         state=user_state_rep,
-                        candidate_docs_repr=candidate_docs,
+                        candidate_docs_repr=cdocs_features_act,
                         use_policy_net=True,
                     )  # type: ignore
 
                     choice_model.score_documents(
-                        user_state=user_state_rep, docs_repr=candidate_docs
+                        user_state=user_state_rep, docs_repr=cdocs_features_act
                     )
                     scores = torch.Tensor(choice_model.scores).to(DEVICE)
                     # scores = torch.softmax(scores, dim=0)
@@ -165,7 +171,9 @@ if __name__ == "__main__":
                         _,
                         _,
                         diverse_score,
-                    ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
+                    ) = env.step(
+                        slate, iterator=i, cdocs_subset_idx=candidates.to(DEVICE)
+                    )
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
                     quality.append(0.0)

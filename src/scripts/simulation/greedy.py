@@ -103,6 +103,7 @@ if __name__ == "__main__":
             clicked_docs = env.get_clicked_docs().to(DEVICE)
 
             user_observed_state = env.curr_user.to(DEVICE)
+            env.diversity()
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):

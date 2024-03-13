@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
-        actor_optimizer = optim.Adam(actor.parameters(), lr=LR)
+        actor_optimizer = optim.Adam(actor.parameters(), lr=LR, weight_decay=1e-3)
         choice_model = choice_model_cls()
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
@@ -240,6 +240,7 @@ if __name__ == "__main__":
             clicked_docs = env.get_clicked_docs().to(DEVICE)
 
             user_observed_state = env.curr_user.to(DEVICE)
+            env.diversity()
             # user_state = user_state / user_state.sum()
 
             max_sess, avg_sess = [], []
@@ -389,5 +390,11 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"wpslate_{ALPHA_RESPONSE}_try_gamma"
-        save_run_wa(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
+        directory = f"diverse_wpslate_{ALPHA_RESPONSE}_gamma"
+        save_run_wa(
+            seed=seed,
+            save_dict=save_dict,
+            agent=agent,
+            actor=actor,
+            directory=directory,
+        )

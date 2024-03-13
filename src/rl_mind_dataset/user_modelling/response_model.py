@@ -127,6 +127,8 @@ class WeightedCosineResponseModel:
         estimated_user_state: torch.Tensor,
         selected_doc: torch.Tensor,
         actual_clicked_doc: torch.Tensor,
+        diversity: torch.Tensor,
+        alpha: float = 1.0,
         **kwargs,
     ) -> torch.Tensor:
         satisfaction = torch.nn.functional.cosine_similarity(
@@ -135,8 +137,8 @@ class WeightedCosineResponseModel:
         doc_quality = torch.nn.functional.cosine_similarity(
             selected_doc, actual_clicked_doc, dim=0
         )
-
-        response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
+        response = alpha * doc_quality + (1 - alpha) * (1 - satisfaction)
+        # response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
         # response = satisfaction
         return response
 

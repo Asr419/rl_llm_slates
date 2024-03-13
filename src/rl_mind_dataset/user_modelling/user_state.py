@@ -51,6 +51,7 @@ class UserState(AbstractUserState):
         self.random_index = None
         self.user_state: Tensor = None
         self.clicked_items = []
+        self.item_tensor: Tensor = None
         self.device = device
         if test:
             self.dataset_interaction_path = self.DATA_PATH / Path(
@@ -122,7 +123,11 @@ class UserState(AbstractUserState):
             if self.embedding_dict.get(key, []) is not None
             and len(self.embedding_dict.get(key, [])) > 0
         ]
-        remaining_items = 300 - len(item_list)
+        self.item_tensor = [
+            torch.tensor(array, dtype=torch.float) for array in item_list
+        ]
+        # set the candidate documents
+        remaining_items = 100 - len(item_list)
         # item_list_arrays = [np.array(vector) for vector in item_list]
         # item_list_set = {tuple(item) for item in item_list_arrays}
         # available_vectors = [
@@ -150,7 +155,8 @@ class UserState(AbstractUserState):
                 available_items, min(remaining_items, len(available_items))
             )
             item_list.extend(selected_lists)
-        item_list = item_list[:300]
+        # make sure you take only the subset
+        item_list = item_list[:100]
         random.shuffle(item_list)
         candidate_tensor = [torch.Tensor(value.astype(float)) for value in item_list]
         # items = self.category_data["presented_slate"].loc[self.random_index]
@@ -207,6 +213,17 @@ class UserState(AbstractUserState):
         # )
         # self.hidden_user_state[sampled_value] = 1
         # return self.hidden_user_state
+
+    def diversity_coefficient(self, **kwds: Any) -> Tensor:
+        # calculate the diversity coefficient between self.user_state and self.item_tensor
+        diversity_coefficient = torch.tensor(0.0)
+        item_tensor_cosine = torch.stack(self.item_tensor)
+        user_state = self.user_state.unsqueeze(0).expand_as(item_tensor_cosine)
+        cosine_similarities = torch.nn.functional.cosine_similarity(
+            user_state, item_tensor_cosine, dim=1
+        )
+        diversity_coefficient = torch.mean(cosine_similarities)
+        return diversity_coefficient
 
     def update_state(
         self, selected_doc_feature: torch.Tensor, sigma: int = 1.0

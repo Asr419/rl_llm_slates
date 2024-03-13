@@ -31,6 +31,7 @@ class SlateGym(gym.Env):
         self.hidden_choice_state = torch.Tensor
         self.candidate_docs: torch.Tensor
         self.clicked_docs: torch.Tensor
+        self.diversity_value: torch.Tensor
 
     def step(
         self,
@@ -56,7 +57,7 @@ class SlateGym(gym.Env):
         )
 
         # Calculate diverse score (sum of cosine similarities)
-        diverse_score = torch.sum(cosine_similarities) / 10
+        diverse_score = torch.sum(cosine_similarities) / 5
 
         # select from the slate on item following the user choice model
         # hidden_state = self.user_state._generate_hidden_state()
@@ -88,6 +89,8 @@ class SlateGym(gym.Env):
                 self.hidden_choice_state.to(self.device),
                 selected_doc_feature.to(self.device),
                 self.clicked_docs[iterator].to(self.device),
+                diversity=diverse_score,
+                alpha=self.diversity_value,
             )
         if test:
             next_user_state = torch.zeros(50).to(self.device)
@@ -130,3 +133,7 @@ class SlateGym(gym.Env):
     def hidden_state(self):
         self.hidden_choice_state = self.user_state._generate_hidden_state()
         return self.hidden_choice_state
+
+    def diversity(self):
+        self.diversity_value = self.user_state.diversity_coefficient()
+        return self.diversity_value

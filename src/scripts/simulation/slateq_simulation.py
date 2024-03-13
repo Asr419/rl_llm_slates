@@ -175,6 +175,7 @@ if __name__ == "__main__":
 
             env.reset()
             env.hidden_state()
+
             is_terminal = False
             cum_satisfaction = 0
 
@@ -182,6 +183,7 @@ if __name__ == "__main__":
             clicked_docs = env.get_clicked_docs().to(DEVICE)
 
             user_observed_state = env.curr_user.to(DEVICE)
+            env.diversity()
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):
@@ -318,5 +320,5 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"slateq_{ALPHA_RESPONSE}_2_gamma"
+        directory = f"diverse_slateq_{ALPHA_RESPONSE}_gamma"
         save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
