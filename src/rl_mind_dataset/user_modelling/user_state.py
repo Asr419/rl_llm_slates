@@ -70,6 +70,10 @@ class UserState(AbstractUserState):
         self.category_data = pd.read_feather(self.dataset_path)
         device: torch.device = (torch.device("cpu"),)
         self.embedding_dict, self.all_item_vectors = self.dataset_reader.item2vecdict()
+        self.article_category = self.dataset_reader.article_category_map()
+        self.new_dict = {
+            tuple(value): key for key, value in self.embedding_dict.items()
+        }
 
     # def _generate_observable_state(self, **kwds: Any) -> torch.Tensor:
     #     num_rows = len(self.category_data)
@@ -122,9 +126,6 @@ class UserState(AbstractUserState):
             for key in items
             if self.embedding_dict.get(key, []) is not None
             and len(self.embedding_dict.get(key, [])) > 0
-        ]
-        self.item_tensor = [
-            torch.tensor(array, dtype=torch.float) for array in item_list
         ]
         # set the candidate documents
         remaining_items = 100 - len(item_list)
@@ -217,13 +218,26 @@ class UserState(AbstractUserState):
     def diversity_coefficient(self, **kwds: Any) -> Tensor:
         # calculate the diversity coefficient between self.user_state and self.item_tensor
         diversity_coefficient = torch.tensor(0.0)
-        item_tensor_cosine = torch.stack(self.item_tensor)
-        user_state = self.user_state.unsqueeze(0).expand_as(item_tensor_cosine)
-        cosine_similarities = torch.nn.functional.cosine_similarity(
-            user_state, item_tensor_cosine, dim=1
-        )
-        diversity_coefficient = torch.mean(cosine_similarities)
-        return diversity_coefficient
+        items_hist = self.category_data["click_history"].loc[self.random_index]
+        item_list_hist = [
+            self.embedding_dict.get(key, [])
+            for key in items_hist
+            if self.embedding_dict.get(key, []) is not None
+            and len(self.embedding_dict.get(key, [])) > 0
+        ]
+        self.item_tensor = [
+            torch.tensor(array, dtype=torch.float) for array in item_list_hist
+        ]
+        if len(self.item_tensor) == 0:
+            return diversity_coefficient
+        else:
+            item_tensor_cosine = torch.stack(self.item_tensor)
+            user_state = self.user_state.unsqueeze(0).expand_as(item_tensor_cosine)
+            cosine_similarities = torch.nn.functional.cosine_similarity(
+                user_state, item_tensor_cosine, dim=1
+            )
+            diversity_coefficient = torch.mean(cosine_similarities)
+            return diversity_coefficient
 
     def update_state(
         self, selected_doc_feature: torch.Tensor, sigma: int = 1.0
@@ -246,3 +260,60 @@ class UserState(AbstractUserState):
         # )
         return self.user_state
         """Update the user's observable state"""
+
+    def diversity_dissimilarity(self, **kwds: Any) -> Tensor:
+        items_hist = self.category_data["click_history"].loc[self.random_index]
+        item_list_hist = [
+            self.embedding_dict.get(key, [])
+            for key in items_hist
+            if self.embedding_dict.get(key, []) is not None
+            and len(self.embedding_dict.get(key, [])) > 0
+        ]
+        self.item_tensor = [
+            torch.tensor(array, dtype=torch.float) for array in item_list_hist
+        ]
+        if len(self.item_tensor) >= 2:
+            tensors = self.item_tensor
+            n = len(tensors)
+            similarity_matrix = torch.zeros(n, n)
+
+            # Compute similarity matrix
+            for i in range(n):
+                for j in range(i + 1, n):
+                    similarity_matrix[i, j] = torch.dot(tensors[i], tensors[j]) / (
+                        torch.norm(tensors[i]) * torch.norm(tensors[j])
+                    )
+                    similarity_matrix[j, i] = similarity_matrix[
+                        i, j
+                    ]  # Similarity matrix is symmetric
+
+            # Calculate diversity
+            total_diversity = (
+                torch.sum(1 - similarity_matrix) - n
+            )  # Exclude diagonal elements
+            diversity_measure = total_diversity / ((n / 2) * (n - 1))
+        else:
+            diversity_measure = torch.tensor(0.0)
+
+        return diversity_measure
+
+    def categorical_diversity(self, slate_items, **kwds: Any) -> Tensor:
+
+        item_ids = [self.new_dict.get(tuple(key.tolist()), 0) for key in slate_items]
+
+        categories = [
+            self.article_category.get(article_id, 0) for article_id in item_ids
+        ]
+        count_categories = [categories.count(i) for i in range(0, 18)]
+        score = sum(1 for x in count_categories if x > 0)
+        return score
+
+    def click_history_diversity(self, **kwds: Any) -> Tensor:
+        items_hist = self.category_data["click_history"].loc[self.random_index]
+        categories = [
+            self.article_category.get(article_id, 0) for article_id in items_hist
+        ]
+        count_categories = [categories.count(i) for i in range(0, 18)]
+        score = sum(1 for x in count_categories if x > 0)
+        a = 0
+        return score / 18

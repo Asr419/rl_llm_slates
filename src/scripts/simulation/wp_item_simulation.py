@@ -123,7 +123,7 @@ if __name__ == "__main__":
         RUN_NAME = (
             f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_ITEM_WP"
         )
-        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
+        # wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
         user_state = UserState(device=DEVICE)
@@ -191,6 +191,7 @@ if __name__ == "__main__":
             clicked_docs = env.get_clicked_docs().to(DEVICE)
 
             user_observed_state = env.curr_user.to(DEVICE)
+            env.diversity()
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):
@@ -323,7 +324,7 @@ if __name__ == "__main__":
             }
             if len(replay_memory_dataset.memory) >= (WARMUP_BATCHES * BATCH_SIZE):
                 log_dict["loss"] = loss
-            wandb.log(log_dict, step=i_episode)
+            # wandb.log(log_dict, step=i_episode)
 
             # ###########################################################################
             # save_dict["session_length"].append(sess_length)
@@ -334,7 +335,7 @@ if __name__ == "__main__":
             # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
             # save_dict["cum_normalized"].append(cum_normalized)
 
-        wandb.finish()
+        # wandb.finish()
         directory = f"wpitem_{ALPHA_RESPONSE}_try_gamma"
         save_run_wa(
             seed=seed,

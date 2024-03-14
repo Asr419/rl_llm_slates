@@ -137,7 +137,7 @@ class WeightedCosineResponseModel:
         doc_quality = torch.nn.functional.cosine_similarity(
             selected_doc, actual_clicked_doc, dim=0
         )
-        response = alpha * doc_quality + (1 - alpha) * (1 - satisfaction)
+        response = (1 - alpha) * doc_quality + alpha * (1 - satisfaction)
         # response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
         # response = satisfaction
         return response

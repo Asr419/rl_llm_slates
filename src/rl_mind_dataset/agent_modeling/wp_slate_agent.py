@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 class WolpertingerActorSlate(nn.Module):
     def __init__(
-        self, nn_dim: list[int], k: int, input_dim: int = 50, slate_size: int = 5
+        self, nn_dim: list[int], k: int, input_dim: int = 50, slate_size: int = 10
     ):
         super(WolpertingerActorSlate, self).__init__()
         self.k = k
@@ -42,7 +42,7 @@ class ActorAgentSlate(nn.Module):
         k: int,
         input_dim: int = 50,
         tau: float = 0.001,
-        slate_size: int = 5,
+        slate_size: int = 10,
     ) -> None:
         nn.Module.__init__(self)
         self.tau = tau
@@ -91,18 +91,35 @@ class ActorAgentSlate(nn.Module):
         for count, i in enumerate(proto_slate):
             distances = torch.linalg.norm(candidate_docs - i, axis=1)
             # Sort distances and get indices of k smallest distances
-            indices = torch.argsort(distances, dim=0)[: self.k]
+            indices = torch.argsort(distances, dim=0)
+            # candidates_subset = candidate_docs[indices]
 
-            # Select k closest tensors from tensor list
-            candidates_subset = candidate_docs[indices]
+            # # Select k closest tensors from tensor list
+
+            # if count == 0:
+            #     indices_tensor = indices
+            #     candidates_tensor = candidates_subset
+            # else:
+            #     indices_tensor = torch.cat((indices_tensor, indices), dim=0)
+            #     candidates_tensor = torch.cat(
+            #         (candidates_tensor, candidates_subset), dim=0
+            #     )
+
             if count == 0:
-                indices_tensor = indices
+                indices_tensor = indices[: self.k]
+                candidates_subset = candidate_docs[indices_tensor]
                 candidates_tensor = candidates_subset
+
             else:
-                indices_tensor = torch.cat((indices_tensor, indices), dim=0)
+                remaining_indices = indices[
+                    torch.logical_not(torch.isin(indices, indices_tensor))
+                ][: self.k]
+                indices_tensor = torch.cat((indices_tensor, remaining_indices), dim=0)
+                candidates_subset = candidate_docs[remaining_indices]
                 candidates_tensor = torch.cat(
                     (candidates_tensor, candidates_subset), dim=0
                 )
+
         end = time.time()
         # print("k_nearest_time", end - start)
         # append indices to another tensor at each iteration

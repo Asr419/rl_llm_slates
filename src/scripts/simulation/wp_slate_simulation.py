@@ -202,6 +202,11 @@ if __name__ == "__main__":
                 150,
                 200,
                 250,
+                300,
+                350,
+                400,
+                450,
+                500,
             ],  # observable= [20, 40, 60, 80, 100], weight_decay=1e-4
             k=int(NEAREST_NEIGHBOURS / SLATE_SIZE),
             slate_size=SLATE_SIZE,
@@ -209,7 +214,7 @@ if __name__ == "__main__":
 
         criterion = torch.nn.SmoothL1Loss()
         optimizer = optim.Adam(agent.parameters(), lr=LR)
-        actor_optimizer = optim.Adam(actor.parameters(), lr=LR, weight_decay=1e-3)
+        actor_optimizer = optim.Adam(actor.parameters(), lr=LR)
         choice_model = choice_model_cls()
         response_model = response_model_cls(**response_model_kwgs)
         env = SlateGym(
@@ -264,6 +269,8 @@ if __name__ == "__main__":
                     # max_sess.append(max_rew)
                     # avg_sess.append(mean_rew)
                     ########################################
+                    a = 0
+
                     cdocs_features_act, candidates = actor.k_nearest(
                         user_observed_state,
                         candidate_docs,
@@ -390,7 +397,7 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"diverse_wpslate_{ALPHA_RESPONSE}_gamma"
+        directory = f"div_dis_wpslate_{ALPHA_RESPONSE}_gamma"
         save_run_wa(
             seed=seed,
             save_dict=save_dict,

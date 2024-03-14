@@ -7,7 +7,7 @@ parameters:
   ######## Environment related parameters ########
   num_users: 5000
   sess_budget: 200
-  slate_size: 5
+  slate_size: 10
   num_item_features: 50
   num_candidates: 2000
   num_user_features: 20
@@ -24,7 +24,7 @@ parameters:
   ######## Models related parameters ########
   slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########
-  nearest_neighbours: 20
+  nearest_neighbours: 40
   ######## Seed ########
   seeds: [5]
   #[5, 7, 42, 97, 33]
@@ -36,5 +36,5 @@ parameters:
   #[5, 7, 9, 11, 13, 17]
   #[5, 7, 77, 79, 81, 42, 11, 13, 17]
   ######## Grouping ########
-  grouping: "SlateWPS"
+  grouping: "ProtoSlate"
   
