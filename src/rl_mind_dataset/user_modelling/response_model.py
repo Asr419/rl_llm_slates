@@ -140,7 +140,7 @@ class WeightedCosineResponseModel:
         response = (1 - alpha) * doc_quality + alpha * (1 - satisfaction)
         # response = (1 - self.alpha) * satisfaction + self.alpha * doc_quality
         # response = satisfaction
-        return response
+        return response, satisfaction, doc_quality
 
     def generate_response(
         self,

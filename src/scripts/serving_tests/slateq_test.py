@@ -6,12 +6,12 @@ print("DEVICE: ", DEVICE)
 load_dotenv()
 base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
 if __name__ == "__main__":
-    SEEDS = [1, 3, 7]
+    SEEDS = [1, 3, 7, 9]
     NUM_EPISODES = 500
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"slateq_{ALPHA}_2_gamma_5")
+        RUN_BASE_PATH = Path(f"div_dis_slateq_{ALPHA}_gamma_5")
         parser = argparse.ArgumentParser()
         config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
         parser.add_argument(
@@ -50,10 +50,10 @@ if __name__ == "__main__":
         choice_model_cls = parameters["choice_model_cls"]
         response_model_cls = parameters["response_model_cls"]
 
-        RUN_NAME = f"Test_{seed}_SlateQ"
+        RUN_NAME = f"SpecTest_div_dis_{seed}_SlateQ"
         wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
-        user_state = UserState(device=DEVICE, test=True)
+        user_state = UserState(device=DEVICE, test=True, specialist=True)
         slate_gen_model_cls = class_name_to_class[slate_gen_model_cls]
         choice_model_cls = class_name_to_class[choice_model_cls]
         response_model_cls = class_name_to_class[response_model_cls]
@@ -114,6 +114,7 @@ if __name__ == "__main__":
             actual_selected_items = clicked_docs
 
             user_observed_state = env.curr_user.to(DEVICE)
+            alpha = env.diversity()
 
             max_sess, avg_sess = [], []
             for i in range(len(clicked_docs)):
@@ -165,36 +166,42 @@ if __name__ == "__main__":
                         _,
                         _,
                         diverse_score,
+                        user_satisfaction,
+                        relevance,
                     ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
                     quality.append(0.0)
 
-                    # for row1 in candidate_docs[slate, :]:
-                    #     for row2 in actual_selected_items:
-                    #         if torch.all(torch.eq(row1, row2)):
-                    #             selected_doc_feature = row1
-                    #             response = response_model._generate_response(
-                    #                 user_state._generate_hidden_state().to(DEVICE),
-                    #                 selected_doc_feature.to(DEVICE),
-                    #                 row2,
-                    #             )
-                    #             clicked_docs_lists = [
-                    #                 tensor.tolist() for tensor in clicked_docs
-                    #             ]
-                    #             index = clicked_docs_lists.index(row2.tolist())
-                    #             actual_selected_items = torch.cat(
-                    #                 (clicked_docs[:index], clicked_docs[index + 1 :]),
-                    #                 dim=0,
-                    #             )
+                    for row1 in candidate_docs[slate, :]:
+                        for row2 in actual_selected_items:
+                            if torch.all(torch.eq(row1, row2)):
+                                selected_doc_feature = row1
+                                response, user_satisfaction, relevance = (
+                                    response_model._generate_response(
+                                        user_state._generate_hidden_state().to(DEVICE),
+                                        selected_doc_feature.to(DEVICE),
+                                        row2,
+                                        diversity=diverse_score,
+                                        alpha=alpha,
+                                    )
+                                )
+                                clicked_docs_lists = [
+                                    tensor.tolist() for tensor in clicked_docs
+                                ]
+                                index = clicked_docs_lists.index(row2.tolist())
+                                actual_selected_items = torch.cat(
+                                    (clicked_docs[:index], clicked_docs[index + 1 :]),
+                                    dim=0,
+                                )
 
-                    #             quality.pop()
-                    #             quality.append(1.0)
-                    #             break
+                                quality.pop()
+                                quality.append(1.0)
+                                break
 
-                    # next_user_state = user_state.update_state(
-                    #     selected_doc_feature=selected_doc_feature.to(DEVICE)
-                    # )
+                    next_user_state = user_state.update_state(
+                        selected_doc_feature=selected_doc_feature.to(DEVICE)
+                    )
                     satisfaction.append(response)
                     # check that not null document has been selected
                     # if not torch.all(selected_doc_feature == 0):
@@ -214,7 +221,7 @@ if __name__ == "__main__":
                     user_observed_state = next_user_state
                     # user_state = user_state / user_state.sum()
 
-            sess_length = np.sum(time_unit_consumed)
+            # sess_length = np.sum(time_unit_consumed)
             ep_quality = torch.mean(torch.tensor(quality))
             ep_avg_satisfaction = torch.mean(torch.tensor(satisfaction))
             ep_cum_satisfaction = torch.sum(torch.tensor(satisfaction))
@@ -255,15 +262,18 @@ if __name__ == "__main__":
 
             wandb.log(log_dict, step=i_episode)
 
-        #     # ###########################################################################
-        #     # save_dict["session_length"].append(sess_length)
-        #     # save_dict["ep_cum_satisfaction"].append(ep_cum_satisfaction)
-        #     # save_dict["ep_avg_satisfaction"].append(ep_avg_satisfaction)
+            #     # ###########################################################################
+            save_dict["hit_documents"].append(ep_quality)
+            save_dict["ep_cum_satisfaction"].append(ep_cum_satisfaction)
+            save_dict["ep_avg_satisfaction"].append(ep_avg_satisfaction)
+            save_dict["diverse_score"].append(diverse_score)
+            save_dict["user_satisfaction"].append(user_satisfaction)
+            save_dict["relevance"].append(relevance)
         #     # save_dict["loss"].append(loss)
         #     # save_dict["best_rl_avg_diff"].append(ep_max_avg - ep_avg_satisfaction)
         #     # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
         #     # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        # directory = f"slateq_{ALPHA_RESPONSE}"
-        # save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)
+        directory = f"slateq_specialist"
+        test_save_run(seed=seed, save_dict=save_dict, directory=directory)

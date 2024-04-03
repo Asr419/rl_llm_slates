@@ -235,6 +235,8 @@ if __name__ == "__main__":
                         _,
                         _,
                         diverse_score,
+                        user_satisfaction,
+                        relevance,
                     ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
@@ -320,5 +322,5 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"div_dis_slateq_{ALPHA_RESPONSE}_gamma"
+        directory = f"div_entropy_slateq_{ALPHA_RESPONSE}_gamma"
         save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

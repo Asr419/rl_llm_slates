@@ -14,19 +14,19 @@ parameters:
   alpha_response: 0.0
   ######## Training related parameters ########
   replay_memory_capacity: 2000
-  batch_size: 256
+  batch_size: 128
   gamma: 1.0
   tau: 0.0001
   lr: 1e-3
-  num_episodes: 10000
+  num_episodes: 8000
   warmup_batches: 1
   device: "cuda:1"  
   ######## Models related parameters ########
   slate_gen_model_cls: TopKSlateGenerator
   ######## Wolpertinger policy ########
-  nearest_neighbours: 40
+  nearest_neighbours: 60
   ######## Seed ########
-  seeds: [5]
+  seeds: [5,42,97,33,99]
   #[5, 7, 42, 97, 33]
   #[5, 7, 42, 97, 33]
   #test=[140, 184, 30, 62, 4]

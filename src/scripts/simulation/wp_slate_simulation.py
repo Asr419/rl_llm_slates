@@ -57,6 +57,13 @@ def optimize_model(batch, batch_size):
     proto_action_tensor = item.reshape(batch_size, SLATE_SIZE, NUM_ITEM_FEATURES)
 
     actor_loss_list = []
+
+    # Shuffle the tensor along the first dimension (dimension 0)
+    # shuffled_tensor = proto_action_tensor[torch.randperm(proto_action_tensor.size(0))]
+    # F.cosine_similarity(proto_action_tensor)
+
+    # 'shuffled_tensor' now contains the original tensor with its first dimension shuffled
+
     # for i in range(batch_size):
     #     item_set = proto_action_tensor[i]
     #     selected_indices = random.sample(range(5), 3)
@@ -305,6 +312,8 @@ if __name__ == "__main__":
                         _,
                         _,
                         diverse_score,
+                        user_satisfaction,
+                        relevance,
                     ) = env.step(
                         slate, iterator=i, cdocs_subset_idx=candidates.to(DEVICE)
                     )
@@ -397,7 +406,7 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"div_dis_wpslate_{ALPHA_RESPONSE}_gamma"
+        directory = f"div_entropy_wpslate_{ALPHA_RESPONSE}_gamma"
         save_run_wa(
             seed=seed,
             save_dict=save_dict,

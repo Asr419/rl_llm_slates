@@ -72,6 +72,8 @@ class SlateGym(gym.Env):
         if selected_doc_idx == self.choice_model.no_selection_token:
             # print("No document selected")
             response = self.response_model.generate_null_response()
+            user_satisfaction = torch.tensor(0)
+            relevance = torch.tensor(0)
 
             # create a fake selected_doc_feature of all zeros
             selected_doc_feature = torch.zeros(cdocs_feature.shape[1])
@@ -86,12 +88,14 @@ class SlateGym(gym.Env):
 
             # TODO: remove generate topic response and fix it in the response model
 
-            response = self.response_model._generate_response(
-                self.hidden_choice_state.to(self.device),
-                selected_doc_feature.to(self.device),
-                self.clicked_docs[iterator].to(self.device),
-                diversity=diverse_score,
-                alpha=self.diversity_value,
+            response, user_satisfaction, relevance = (
+                self.response_model._generate_response(
+                    self.hidden_choice_state.to(self.device),
+                    selected_doc_feature.to(self.device),
+                    self.clicked_docs[iterator].to(self.device),
+                    diversity=diverse_score,
+                    alpha=self.diversity_value,
+                )
             )
         if test:
             next_user_state = torch.zeros(50).to(self.device)
@@ -113,6 +117,8 @@ class SlateGym(gym.Env):
             False,
             info,
             diverse_score,
+            user_satisfaction,
+            relevance,
         )
 
     def reset(self) -> None:
@@ -136,6 +142,5 @@ class SlateGym(gym.Env):
         return self.hidden_choice_state
 
     def diversity(self):
-        self.diversity_value = self.user_state.diversity_dissimilarity()
-        self.diversity_value = self.user_state.click_history_diversity()
+        self.diversity_value = self.user_state.entropy_based_diversity()
         return self.diversity_value

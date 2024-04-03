@@ -58,7 +58,7 @@ from rl_mind_dataset.user_modelling.response_model import (
 from rl_mind_dataset.user_modelling.user_state import UserState
 from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 
-from rl_mind_dataset.utils import save_run, save_run_wa
+from rl_mind_dataset.utils import save_run, save_run_wa, test_save_run
 
 class_name_to_class = {
     "ObservedUserState": UserState,

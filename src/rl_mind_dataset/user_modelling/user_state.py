@@ -43,7 +43,12 @@ class AbstractUserState(nn.Module, metaclass=abc.ABCMeta):
 
 class UserState(AbstractUserState):
     def __init__(
-        self, device: torch.device = torch.device("cpu"), test=False, **kwds: Any
+        self,
+        device: torch.device = torch.device("cpu"),
+        test=False,
+        generalist=False,
+        specialist=False,
+        **kwds: Any,
     ) -> None:
         super().__init__(**kwds)
         self.DATA_PATH = Path.home() / Path(os.environ.get("DATA_PATH"))
@@ -53,7 +58,23 @@ class UserState(AbstractUserState):
         self.clicked_items = []
         self.item_tensor: Tensor = None
         self.device = device
-        if test:
+        if test and generalist:
+            self.dataset_interaction_path = self.DATA_PATH / Path(
+                "MINDlarge_train/generalist_test_50.feather"
+            )
+            self.interaction_data = pd.read_feather(self.dataset_interaction_path)
+            self.dataset_path = self.DATA_PATH / Path(
+                "MINDlarge_train/generalist_test_50.feather"
+            )
+        elif test and specialist:
+            self.dataset_interaction_path = self.DATA_PATH / Path(
+                "MINDlarge_train/specialist_test_50.feather"
+            )
+            self.interaction_data = pd.read_feather(self.dataset_interaction_path)
+            self.dataset_path = self.DATA_PATH / Path(
+                "MINDlarge_train/specialist_test_50.feather"
+            )
+        elif test and not generalist and not specialist:
             self.dataset_interaction_path = self.DATA_PATH / Path(
                 "MINDlarge_train/test_50.feather"
             )
@@ -128,7 +149,7 @@ class UserState(AbstractUserState):
             and len(self.embedding_dict.get(key, [])) > 0
         ]
         # set the candidate documents
-        remaining_items = 100 - len(item_list)
+        remaining_items = 300 - len(item_list)
         # item_list_arrays = [np.array(vector) for vector in item_list]
         # item_list_set = {tuple(item) for item in item_list_arrays}
         # available_vectors = [
@@ -157,7 +178,7 @@ class UserState(AbstractUserState):
             )
             item_list.extend(selected_lists)
         # make sure you take only the subset
-        item_list = item_list[:100]
+        item_list = item_list[:300]
         random.shuffle(item_list)
         candidate_tensor = [torch.Tensor(value.astype(float)) for value in item_list]
         # items = self.category_data["presented_slate"].loc[self.random_index]
@@ -297,6 +318,7 @@ class UserState(AbstractUserState):
 
         return diversity_measure
 
+    # diversity on the items in the slate
     def categorical_diversity(self, slate_items, **kwds: Any) -> Tensor:
 
         item_ids = [self.new_dict.get(tuple(key.tolist()), 0) for key in slate_items]
@@ -314,6 +336,24 @@ class UserState(AbstractUserState):
             self.article_category.get(article_id, 0) for article_id in items_hist
         ]
         count_categories = [categories.count(i) for i in range(0, 18)]
-        score = sum(1 for x in count_categories if x > 0)
-        a = 0
-        return score / 18
+        score = sum(1 for x in count_categories if x > 0) / 18
+        return score
+
+    def entropy_based_diversity(self, **kwds: Any) -> Tensor:
+        items_hist = self.category_data["click_history"].loc[self.random_index]
+        categories = [
+            self.article_category.get(article_id, 0) for article_id in items_hist
+        ]
+        count_categories = [categories.count(i) for i in range(0, 18)]
+        probs = count_categories / np.sum(count_categories)
+
+        # Handle zero probabilities (avoid log of zero)
+        probs = np.where(probs > 0, probs, 1e-10)
+
+        # Calculate entropy
+        entropy = -np.sum(probs * np.log2(probs))
+
+        # Normalize entropy (optional, comment out if not needed)
+        diversity_score = entropy / np.log2(len(count_categories))
+
+        return diversity_score
