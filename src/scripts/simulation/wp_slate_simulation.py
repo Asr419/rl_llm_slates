@@ -101,6 +101,17 @@ def optimize_model(batch, batch_size):
         scores_tens_loss = torch.softmax(scores_tens_loss, dim=0)
         v_sum = scores_tens_loss.squeeze().sum()
         actor_loss_list.append(-torch.sum((q_loss * scores_tens_loss) / v_sum))
+    # for i in range(batch_size):
+    #     proto_action_tensor_rep = proto_action_tensor[i]
+    #     shuffled_indices = torch.randperm(proto_action_tensor_rep.size(0))
+    #     proto_action_shuffled = proto_action_tensor_rep[shuffled_indices]
+    #     normalized_A = torch.nn.functional.normalize(proto_action_tensor_rep, dim=1)
+    #     normalized_B = torch.nn.functional.normalize(proto_action_shuffled, dim=1)
+
+    #     actor_loss_list.append(
+    #         -torch.mean(torch.einsum("ij,ij->i", normalized_A, normalized_B))
+    #     )
+
     actor_loss = torch.tensor(actor_loss_list, requires_grad=True).unsqueeze(1).mean()
     # actor_item_loss = torch.empty(128, 5)
     # for i in range(5):

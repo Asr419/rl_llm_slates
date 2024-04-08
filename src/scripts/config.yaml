@@ -14,7 +14,7 @@ parameters:
   alpha_response: 0.0
   ######## Training related parameters ########
   replay_memory_capacity: 2000
-  batch_size: 128
+  batch_size: 28
   gamma: 1.0
   tau: 0.0001
   lr: 1e-3

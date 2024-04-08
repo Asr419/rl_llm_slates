@@ -48,6 +48,7 @@ class UserState(AbstractUserState):
         test=False,
         generalist=False,
         specialist=False,
+        cold_start=False,
         **kwds: Any,
     ) -> None:
         super().__init__(**kwds)
@@ -60,19 +61,27 @@ class UserState(AbstractUserState):
         self.device = device
         if test and generalist:
             self.dataset_interaction_path = self.DATA_PATH / Path(
-                "MINDlarge_train/generalist_test_50.feather"
+                "MINDlarge_train/entropy_generalist_test_50.feather"
             )
             self.interaction_data = pd.read_feather(self.dataset_interaction_path)
             self.dataset_path = self.DATA_PATH / Path(
-                "MINDlarge_train/generalist_test_50.feather"
+                "MINDlarge_train/entropy_generalist_test_50.feather"
             )
         elif test and specialist:
             self.dataset_interaction_path = self.DATA_PATH / Path(
-                "MINDlarge_train/specialist_test_50.feather"
+                "MINDlarge_train/entropy_specialist_test_50.feather"
             )
             self.interaction_data = pd.read_feather(self.dataset_interaction_path)
             self.dataset_path = self.DATA_PATH / Path(
-                "MINDlarge_train/specialist_test_50.feather"
+                "MINDlarge_train/entropy_specialist_test_50.feather"
+            )
+        elif test and cold_start:
+            self.dataset_interaction_path = self.DATA_PATH / Path(
+                "MINDlarge_train/entropy_coldstart_test_50.feather"
+            )
+            self.interaction_data = pd.read_feather(self.dataset_interaction_path)
+            self.dataset_path = self.DATA_PATH / Path(
+                "MINDlarge_train/entropy_coldstart_test_50.feather"
             )
         elif test and not generalist and not specialist:
             self.dataset_interaction_path = self.DATA_PATH / Path(
@@ -345,10 +354,11 @@ class UserState(AbstractUserState):
             self.article_category.get(article_id, 0) for article_id in items_hist
         ]
         count_categories = [categories.count(i) for i in range(0, 18)]
+        count_categories = [val if val != 0 else 1e-10 for val in count_categories]
         probs = count_categories / np.sum(count_categories)
 
         # Handle zero probabilities (avoid log of zero)
-        probs = np.where(probs > 0, probs, 1e-10)
+        # probs = np.where(probs > 0, probs, 1e-10)
 
         # Calculate entropy
         entropy = -np.sum(probs * np.log2(probs))
