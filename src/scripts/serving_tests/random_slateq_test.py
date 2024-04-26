@@ -6,12 +6,13 @@ print("DEVICE: ", DEVICE)
 load_dotenv()
 base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
 if __name__ == "__main__":
-    SEEDS = [3, 7, 9]
-    NUM_EPISODES = 100
+    USER_SEED = 11
+    SEEDS = [5, 42, 97, 33, 99]
+    NUM_EPISODES = 300
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"div_entropy_slateq_{ALPHA}_gamma_5")
+        RUN_BASE_PATH = Path(f"div_entropy_slateq_{ALPHA}_gamma_{seed}")
         parser = argparse.ArgumentParser()
         config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
         parser.add_argument(
@@ -25,7 +26,7 @@ if __name__ == "__main__":
             config = yaml.safe_load(f)
 
         parameters = config["parameters"]
-        pl.seed_everything(seed)
+        pl.seed_everything(USER_SEED)
         PATH = base_path / RUN_BASE_PATH / Path("model.pt")
         # ACTOR_PATH = base_path / RUN_BASE_PATH / Path("actor.pt")
         resp_amp_factor = parameters["resp_amp_factor"]
@@ -50,10 +51,16 @@ if __name__ == "__main__":
         choice_model_cls = parameters["choice_model_cls"]
         response_model_cls = parameters["response_model_cls"]
 
-        RUN_NAME = f"Test_Random"
+        RUN_NAME = f"GenTest_RandomSlateq"
         wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
-        user_state = UserState(device=DEVICE, test=True, generalist=True)
+        user_state = UserState(
+            device=DEVICE,
+            test=True,
+            specialist=False,
+            generalist=True,
+            cold_start=False,
+        )
         slate_gen_model_cls = class_name_to_class[slate_gen_model_cls]
         choice_model_cls = class_name_to_class[choice_model_cls]
         response_model_cls = class_name_to_class[response_model_cls]
@@ -295,5 +302,5 @@ if __name__ == "__main__":
         #     # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"wp_slate_generalist"
+        directory = f"random_slateq_generalist"
         test_save_run(seed=seed, save_dict=save_dict, directory=directory)

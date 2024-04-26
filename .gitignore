@@ -3,3 +3,5 @@ __pycache__
 *.txt
 *.vscode
 *.csv
+diversity.ipynb
+*.pdf

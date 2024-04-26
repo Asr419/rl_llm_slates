@@ -4,9 +4,9 @@ from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
 # base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
 # RUN_BASE_PATH = Path(f"user_choice_model")
 # PATH = base_path / RUN_BASE_PATH / Path("model.pt")
-DEVICE = "cuda:0"
+DEVICE = "cpu"
 if __name__ == "__main__":
-    NUM_EPISODES = 500
+    NUM_EPISODES = 300
     parser = argparse.ArgumentParser()
     config_path = "src/scripts/config.yaml"
     parser.add_argument(
@@ -22,7 +22,8 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     parameters = config["parameters"]
-    SEEDS = [1, 3, 7, 9]
+    USER_SEED = 11
+    SEEDS = [5, 42, 97, 33, 99]
     for seed in SEEDS:
         pl.seed_everything(seed)
         resp_amp_factor = parameters["resp_amp_factor"]
@@ -49,11 +50,17 @@ if __name__ == "__main__":
         response_model_cls = parameters["response_model_cls"]
 
         ######## Init_wandb ########
-        RUN_NAME = f"SpecTest_{seed}_ALPHA_{ALPHA_RESPONSE}_Greedy"
+        RUN_NAME = f"GenTest_Greedy"
         wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
-        user_state = UserState(device=DEVICE, test=True, generalist=True)
+        user_state = UserState(
+            device=DEVICE,
+            test=True,
+            specialist=False,
+            generalist=True,
+            cold_start=False,
+        )
         slate_gen_model_cls = class_name_to_class[slate_gen_model_cls]
         choice_model_cls = class_name_to_class[choice_model_cls]
         response_model_cls = class_name_to_class[response_model_cls]
@@ -81,7 +88,7 @@ if __name__ == "__main__":
             response_model=response_model,
             device=DEVICE,
         )
-        torch.cuda.set_device(DEVICE)
+        # torch.cuda.set_device(DEVICE)
 
         ############################## TRAINING ###################################
         save_dict = defaultdict(list)

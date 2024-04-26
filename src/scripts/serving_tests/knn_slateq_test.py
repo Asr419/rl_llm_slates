@@ -6,12 +6,13 @@ print("DEVICE: ", DEVICE)
 load_dotenv()
 base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
 if __name__ == "__main__":
-    SEEDS = [3, 7, 9]
-    NUM_EPISODES = 100
+    USER_SEED = 11
+    SEEDS = [5, 42, 97, 33, 99]
+    NUM_EPISODES = 300
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"div_entropy_slateq_{ALPHA}_gamma_5")
+        RUN_BASE_PATH = Path(f"div_entropy_slateq_{ALPHA}_gamma_{seed}")
         parser = argparse.ArgumentParser()
         config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
         parser.add_argument(
@@ -25,7 +26,7 @@ if __name__ == "__main__":
             config = yaml.safe_load(f)
 
         parameters = config["parameters"]
-        pl.seed_everything(seed)
+        pl.seed_everything(USER_SEED)
         PATH = base_path / RUN_BASE_PATH / Path("model.pt")
         # ACTOR_PATH = base_path / RUN_BASE_PATH / Path("actor.pt")
         resp_amp_factor = parameters["resp_amp_factor"]
@@ -50,10 +51,16 @@ if __name__ == "__main__":
         choice_model_cls = parameters["choice_model_cls"]
         response_model_cls = parameters["response_model_cls"]
 
-        RUN_NAME = f"GenTest_{seed}_KNNstate"
-        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
+        RUN_NAME = f"GenTest_KNNstate"
+        # wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
-        user_state = UserState(device=DEVICE, test=True, generalist=True)
+        user_state = UserState(
+            device=DEVICE,
+            test=True,
+            specialist=False,
+            generalist=True,
+            cold_start=False,
+        )
         slate_gen_model_cls = class_name_to_class[slate_gen_model_cls]
         choice_model_cls = class_name_to_class[choice_model_cls]
         response_model_cls = class_name_to_class[response_model_cls]
@@ -282,7 +289,7 @@ if __name__ == "__main__":
                 "diverse_score": diverse_score,
             }
 
-            wandb.log(log_dict, step=i_episode)
+            # wandb.log(log_dict, step=i_episode)
 
             #     # ###########################################################################
             save_dict["hit_documents"].append(ep_quality)
@@ -291,11 +298,12 @@ if __name__ == "__main__":
             save_dict["diverse_score"].append(diverse_score)
             save_dict["user_satisfaction"].append(user_satisfaction)
             save_dict["relevance"].append(relevance)
+            save_run["entropy_diversity"].append(alpha)
         #     # save_dict["loss"].append(loss)
         #     # save_dict["best_rl_avg_diff"].append(ep_max_avg - ep_avg_satisfaction)
         #     # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
         #     # save_dict["cum_normalized"].append(cum_normalized)
 
-        wandb.finish()
-        directory = f"wp_slate_generalist"
+        # wandb.finish()
+        directory = f"knn_state_generalist_diversity"
         test_save_run(seed=seed, save_dict=save_dict, directory=directory)
