@@ -18,7 +18,7 @@ To run the user model navigate to user_modelling/ncf.py while the dataloader for
 SlateQ -  To run slateq as described in the paper navigate to src/scripts/simulation/slateq_simulation.py with the seeds as there in the config.yaml file description just after this.
 ProtoSlate - To run slatewolpertinger set the nearest neighbour to the percentage of num_candidates (candidate documents as mentioned in the paper) in the config.yaml file. The code to run train this framework is wp_slate_simulation.py
 
-# Ablation studt - Test runs
+# Ablation study - Test runs
 All the baselines and ProtoSlate reported results in the paper are based on the python test files for each of them in src/scripts/serving_test/. Each file name is indicative of each of the algorithm discussed in the paper. For servign time comparison the code is under src/scripts/serving_time/.
 
 # Reproducibility
