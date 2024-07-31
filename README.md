@@ -1,4 +1,4 @@
-# Leveraging User Diversity for Session-Slate Recommendation via Simulation based Deep Q-Learning
+# Simulating Real-World News Consumption: Deep Q-Learning for Diverse User-Centric Slate Recommendations
 Authors: 
 - Aayush Singha Roy (aayush.singharoy@insight-centre.org) 
 ---
