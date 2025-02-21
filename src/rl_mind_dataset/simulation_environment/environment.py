@@ -119,6 +119,9 @@ class SlateGym(gym.Env):
             diverse_score,
             user_satisfaction,
             relevance,
+            # adding only for slate gen creation
+            self.candidate_docs,
+            cdocs_feature,
         )
 
     def reset(self) -> None:
