@@ -17,7 +17,7 @@ gen_slates_dir.mkdir(
 )  # Create the directory if it doesn't exist
 
 # Define file path
-feather_file_path = gen_slates_dir / "user_slates.feather"
+feather_file_path = gen_slates_dir / "wp_user_slates.feather"
 
 if __name__ == "__main__":
     USER_SEED = 11
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         save_dict = defaultdict(list)
         is_terminal = False
         data = []
-        NUM_EPISODES = 2
+        NUM_EPISODES = 100
         for i_episode in tqdm(range(NUM_EPISODES)):
             satisfaction, loss, diff_to_best, quality, time_unit_consumed = (
                 [],

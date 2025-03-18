@@ -1,15 +1,23 @@
 from scripts.simulation_imports import *
 from rl_mind_dataset.user_modelling.ncf import NCF, DataFrameDataset
+import pandas as pd
 
 DEVICE = "cpu"
 print("DEVICE: ", DEVICE)
 load_dotenv()
 base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
+DATA_PATH = Path.home() / Path(os.environ.get("RSYS_DATA", "rsys_data/rsys_2025"))
+gen_slates_dir = DATA_PATH / "gen_slates"
+gen_slates_dir.mkdir(
+    parents=True, exist_ok=True
+)  # Create the directory if it doesn't exist
 
+# Define file path
+feather_file_path = gen_slates_dir / "slateq_user_slates.feather"
 if __name__ == "__main__":
     USER_SEED = 11
-    SEEDS = [42, 97, 33, 99]
-    NUM_EPISODES = 1000
+    SEEDS = [33, 99]
+    NUM_EPISODES = 100
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
@@ -103,6 +111,7 @@ if __name__ == "__main__":
         ############################## TRAINING ###################################
         save_dict = defaultdict(list)
         is_terminal = False
+        data = []
         for i_episode in tqdm(range(NUM_EPISODES)):
             satisfaction, loss, diff_to_best, quality, time_unit_consumed = (
                 [],
@@ -113,6 +122,8 @@ if __name__ == "__main__":
             )
 
             env.reset()
+            initial_user_state = env.curr_user.clone().cpu().numpy()
+            initial_user_state_serialized = initial_user_state.tolist()
             env.hidden_state()
             is_terminal = False
             cum_satisfaction = 0
@@ -176,10 +187,21 @@ if __name__ == "__main__":
                         diverse_score,
                         user_satisfaction,
                         relevance,
+                        candidate_docs,
+                        slate_docs,
                     ) = env.step(slate, iterator=i, cdocs_subset_idx=None)
                     # normalize satisfaction between 0 and 1
                     # response = (response - min_rew) / (max_rew - min_rew)
+                    candidate_docs_list = candidate_docs.cpu().numpy().tolist()
+                    slate_list = slate.cpu().numpy().tolist()
                     quality.append(0.0)
+                    data.append(
+                        {
+                            "initial_user_state": initial_user_state_serialized,
+                            "candidate_docs": candidate_docs_list,  # Convert to list for storage
+                            "slate_docs": slate_list,
+                        }
+                    )
 
                     for row1 in candidate_docs[slate, :]:
                         for row2 in actual_selected_items:
@@ -267,22 +289,24 @@ if __name__ == "__main__":
                 # "cum_normalized": cum_normalized,
                 "diverse_score": diverse_score,
             }
+            df = pd.DataFrame(data)
+            df.to_feather(feather_file_path)
 
             # wandb.log(log_dict, step=i_episode)
 
-            #     # ###########################################################################
-            save_dict["hit_documents"].append(ep_quality)
-            save_dict["ep_cum_satisfaction"].append(ep_cum_satisfaction)
-            save_dict["ep_avg_satisfaction"].append(ep_avg_satisfaction)
-            save_dict["diverse_score"].append(diverse_score)
-            save_dict["user_satisfaction"].append(user_satisfaction)
-            save_dict["relevance"].append(relevance)
-            save_dict["entropy_diversity"].append(alpha)
+            # #     # ###########################################################################
+            # save_dict["hit_documents"].append(ep_quality)
+            # save_dict["ep_cum_satisfaction"].append(ep_cum_satisfaction)
+            # save_dict["ep_avg_satisfaction"].append(ep_avg_satisfaction)
+            # save_dict["diverse_score"].append(diverse_score)
+            # save_dict["user_satisfaction"].append(user_satisfaction)
+            # save_dict["relevance"].append(relevance)
+            # save_dict["entropy_diversity"].append(alpha)
         #     # save_dict["loss"].append(loss)
         #     # save_dict["best_rl_avg_diff"].append(ep_max_avg - ep_avg_satisfaction)
         #     # save_dict["best_avg_avg_diff"].append(ep_max_avg - ep_avg_avg)
         #     # save_dict["cum_normalized"].append(cum_normalized)
 
         # wandb.finish()
-        directory = f"slateq_generalist_diversity"
-        test_save_run(seed=seed, save_dict=save_dict, directory=directory)
+        # directory = f"slateq_generalist_diversity"
+        # test_save_run(seed=seed, save_dict=save_dict, directory=directory)
