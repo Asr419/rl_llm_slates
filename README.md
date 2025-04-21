@@ -1,9 +1,12 @@
-# Simulating Real-World News Consumption: Deep Q-Learning for Diverse User-Centric Slate Recommendations
-Authors: 
-- Aayush Singha Roy (aayush.singharoy@insight-centre.org) 
+# Session-Aware Slate Recommendation: Evaluating LLM-Enhanced Slate Recommendations with Real User Sessions
+
+
+In this work we explore the use of LLMs reasoning capabilities in slate generation for session based recommender systems. The idea is to retain the performance with LLM enhancement but to also keep the inference time as low as possible. Hence the work is inspired by assessing performance across accuracy, diversity and novelty compared using existing RL slate recommendation algos with LLMs on top of them.
 ---
-![Alt text](news.png)
+![Alt text](framework.png)
 --- 
+
+For LLM based inference or training SlateLLM as mentioned in paper set your own API Key in .env file.
 
 # Repository setup
 To setup the repository clone the github link and run command poetry install from the IDE terminal which will create the .venv file. Ensure that the python environment setup points to python in the .venv file which is in .venv/bin/python
@@ -16,18 +19,18 @@ To run the user model navigate to user_modelling/ncf.py while the dataloader for
 
 # Running Experiments - Training
 SlateQ -  To run slateq as described in the paper navigate to src/scripts/simulation/slateq_simulation.py with the seeds as there in the config.yaml file description just after this.
-ProtoSlate - To run slatewolpertinger set the nearest neighbour to the percentage of num_candidates (candidate documents as mentioned in the paper) in the config.yaml file. The code to run train this framework is wp_slate_simulation.py
+Proto-Slate - To run slatewolpertinger set the nearest neighbour to the percentage of num_candidates (candidate documents as mentioned in the paper) in the config.yaml file. The code to run train this framework is wp_slate_simulation.py
+SlateLLM - To run slatewolpertinger set the nearest neighbour to the percentage of num_candidates (candidate documents as mentioned in the paper) in the config.yaml file. The code to run train this framework is wp_slate_llm_simulation.py and make sure the modified_llm_response function in the environment.py file is not commented out during traininig.
 
 # Ablation study - Test runs
-All the baselines and ProtoSlate reported results in the paper are based on the python test files for each of them in src/scripts/serving_test/. Each file name is indicative of each of the algorithm discussed in the paper. For servign time comparison the code is under src/scripts/serving_time/.
+For ProtoSlate+LLM and SlateQ+LLM first train the model and then collect test slates by loading the model from wp_slate_gen_collect_slates.py and slateq_gen_slates.py. Next step navigate to llm_slates.py in scripts/serving_tests folder and use llm for generating modified slates and save the result in feather. After that load the feather file in results.ipynb to do the ablations and get results for all metrics. The main notebook to refer is results.ipynb which is in the file plotting_scripts. All the baselines and ProtoSlate reported results in the paper are based on the python test files for each of them in src/scripts/serving_test/. Each file name is indicative of each of the algorithm discussed in the paper. For serving time comparison the code is under src/scripts/serving_time/.
 
 # Plotting Scripts
-All plotting scripts are present in src/plotting_scripts/. For the diversity and hit ratio plots refer to result_plot.ipynb in that folder. Load all the 5 trained models for 5 seeded runs and will directly plot s-recall and hit ratio as mentioned in the paper.
+All plotting scripts are present in src/plotting_scripts/. To produce results in the paper please follow the script in results.ipynb.
 
 
 # Reproducibility
 To ensure reproducibility set the parameters in config.yaml file as mentioned below:
-parameters:
 parameters:
   ######## User related parameters ########
   resp_amp_factor: 1.0
@@ -46,6 +49,7 @@ parameters:
   replay_memory_capacity: 2000
   batch_size: 256
   gamma: 1.0
+  lambda: 0.5
   tau: 0.0001
   lr: 1e-3
   num_episodes: 80000
