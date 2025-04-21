@@ -72,7 +72,7 @@ def optimize_model(batch):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    config_path = "src/scripts/config.yaml"
+    config_path = "scripts/config.yaml"
     parser.add_argument(
         "--config",
         type=str,
@@ -112,10 +112,10 @@ if __name__ == "__main__":
         response_model_cls = parameters["response_model_cls"]
 
         ######## Init_wandb ########
-        RUN_NAME = (
-            f"Mind_Dataset_GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
+        RUN_NAME = f"GAMMA_{GAMMA}_SEED_{seed}_ALPHA_{ALPHA_RESPONSE}_SLATEQ"
+        wandb.init(
+            project="recsys_llm_reasoning", config=config["parameters"], name=RUN_NAME
         )
-        wandb.init(project="mind_dataset", config=config["parameters"], name=RUN_NAME)
 
         ################################################################
         user_state = UserState(device=DEVICE)
@@ -322,5 +322,5 @@ if __name__ == "__main__":
             # save_dict["cum_normalized"].append(cum_normalized)
 
         wandb.finish()
-        directory = f"div_entropy_slateq_{ALPHA_RESPONSE}_gamma"
+        directory = f"slateq_{ALPHA_RESPONSE}"
         save_run(seed=seed, save_dict=save_dict, agent=agent, directory=directory)

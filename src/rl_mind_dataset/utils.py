@@ -11,7 +11,7 @@ load_dotenv()
 
 
 def save_run(seed, agent, save_dict, directory: str):
-    save_path = Path(os.environ.get("SAVE_PATH"))  # type: ignore
+    save_path = Path(os.environ.get("LLM_TRAINED_PATH"))  # type: ignore
     save_path = Path.home() / save_path
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -24,7 +24,7 @@ def save_run(seed, agent, save_dict, directory: str):
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # save config
-    source_path = "src/scripts/config.yaml"
+    source_path = "scripts/config.yaml"
     destination_path = save_dir / Path("config.yaml")
     shutil.copy(source_path, destination_path)
 
@@ -40,7 +40,7 @@ def save_run(seed, agent, save_dict, directory: str):
 
 
 def save_run_wa(seed, agent, save_dict, actor, directory: str):
-    save_path = Path(os.environ.get("SAVE_PATH"))  # type: ignore
+    save_path = Path(os.environ.get("LLM_TRAINED_PATH"))  # type: ignore
     save_path = Path.home() / save_path
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +53,7 @@ def save_run_wa(seed, agent, save_dict, actor, directory: str):
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # save config
-    source_path = "src/scripts/config.yaml"
+    source_path = "scripts/config.yaml"
     destination_path = save_dir / Path("config.yaml")
     shutil.copy(source_path, destination_path)
 

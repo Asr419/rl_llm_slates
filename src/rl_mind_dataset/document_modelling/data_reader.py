@@ -90,3 +90,8 @@ class DatasetReader:
         all_vectors = [np.array(vector) for vector in embedding_dict.values()]
 
         return embedding_dict, all_vectors
+
+    def item_title_map(self):
+        news = self.get_articles_dataset()
+        title_dict = dict(zip(news["itemId"], news["title"]))
+        return title_dict

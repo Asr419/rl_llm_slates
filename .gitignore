@@ -11,3 +11,5 @@ smart_open-7.1.0-py3-none-any.whl
 wrapt-1.17.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 numpy-2.2.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 gensim-4.3.2-cp312-cp312-linux_x86_64.whl
+.env
+reasoning_logs

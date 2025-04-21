@@ -9,7 +9,7 @@ import pandas as pd
 DEVICE = "cpu"
 print("DEVICE: ", DEVICE)
 load_dotenv()
-base_path = Path.home() / Path(os.environ.get("SAVE_PATH"))
+base_path = Path.home() / Path(os.environ.get("LLM_TRAINED_PATH"))
 DATA_PATH = Path.home() / Path(os.environ.get("RSYS_DATA", "rsys_data/rsys_2025"))
 gen_slates_dir = DATA_PATH / "gen_slates"
 gen_slates_dir.mkdir(
@@ -17,16 +17,16 @@ gen_slates_dir.mkdir(
 )  # Create the directory if it doesn't exist
 
 # Define file path
-feather_file_path = gen_slates_dir / "wp_user_slates.feather"
+feather_file_path = gen_slates_dir / "wp_llm_user_slates.feather"
 
 if __name__ == "__main__":
     USER_SEED = 11
-    SEEDS = [33, 99]
+    SEEDS = [5]
     NUM_EPISODES = 1000
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"div_entropy_wpslate_{ALPHA}_gamma_{seed}")
+        RUN_BASE_PATH = Path(f"wpslate_{ALPHA}_{seed}")
         parser = argparse.ArgumentParser()
         config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
         parser.add_argument(

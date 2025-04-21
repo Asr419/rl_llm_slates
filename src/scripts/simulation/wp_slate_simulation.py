@@ -8,6 +8,7 @@ def optimize_model(batch, batch_size):
         candidates_batch,  # [batch_size, num_candidates, num_item_features]
         satisfaction_batch,  # [batch_size, 1]
         next_state_batch,  # [batch_size, num_item_features]
+        llm_slate_features_batch,
     ) = batch
 
     optimizer.zero_grad()
@@ -136,7 +137,7 @@ def optimize_model(batch, batch_size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    config_path = "src/scripts/config.yaml"
+    config_path = "scripts/config.yaml"
     parser.add_argument(
         "--config",
         type=str,
@@ -320,6 +321,7 @@ if __name__ == "__main__":
                         response,
                         is_terminal,
                         next_user_state,
+                        llm_slate,
                         _,
                         _,
                         diverse_score,
@@ -344,6 +346,7 @@ if __name__ == "__main__":
                                 cdocs_features_act,
                                 response,
                                 next_user_state,  # type: ignore
+                                llm_slate,
                             )
                         )
 

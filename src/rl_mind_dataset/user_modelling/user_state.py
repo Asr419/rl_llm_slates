@@ -100,10 +100,21 @@ class UserState(AbstractUserState):
         self.category_data = pd.read_feather(self.dataset_path)
         device: torch.device = (torch.device("cpu"),)
         self.embedding_dict, self.all_item_vectors = self.dataset_reader.item2vecdict()
+        self.item_title_dict = self.dataset_reader.item_title_map()
         self.article_category = self.dataset_reader.article_category_map()
         self.new_dict = {
             tuple(value): key for key, value in self.embedding_dict.items()
         }
+        # category_tuple_data = self.category_data
+        # category_tuple_data["observed_state"] = category_tuple_data[
+        #     "observed_state"
+        # ].apply(lambda x: tuple(x) if x is not None else ())
+        # self.observed_state_click_history_dict = dict(
+        #     zip(
+        #         category_tuple_data["observed_state"],
+        #         category_tuple_data["click_history"],
+        #     )
+        # )
 
     # def _generate_observable_state(self, **kwds: Any) -> torch.Tensor:
     #     num_rows = len(self.category_data)
@@ -367,3 +378,43 @@ class UserState(AbstractUserState):
         diversity_score = entropy / np.log2(len(count_categories))
 
         return diversity_score
+
+    def get_click_history(self, **kwds: Any) -> Tensor:
+        items_hist = self.category_data["click_history"].loc[self.random_index]
+        return items_hist
+
+    def get_llm_ids(self, candidate_docs, slate_features, **kwds: Any) -> list:
+        embedding_map = {tuple(v.tolist()): k for k, v in self.embedding_dict.items()}
+
+        def lookup_ids(tensor):
+            return [
+                embedding_map.get(tuple(embedding.tolist()), None)
+                for embedding in tensor
+            ]
+
+        candidate_ids = lookup_ids(candidate_docs)
+        slate_ids = lookup_ids(slate_features)
+
+        return candidate_ids, slate_ids
+
+    def get_item_ids_and_titles(self, item_ids):
+        # Create a dictionary of itemId -> title for faster lookup
+        item_to_title = self.item_title_dict
+
+        # Retrieve the titles for each item_id
+        item_titles = [
+            (item_id, item_to_title.get(item_id, "Title not found"))
+            for item_id in item_ids
+        ]
+
+        return item_titles
+
+    def get_llm_features(self, items):
+        item_list = [
+            self.embedding_dict.get(key, [])
+            for key in items
+            if self.embedding_dict.get(key, []) is not None
+            and len(self.embedding_dict.get(key, [])) > 0
+        ]
+        candidate_tensor = [torch.Tensor(value.astype(float)) for value in item_list]
+        return candidate_tensor

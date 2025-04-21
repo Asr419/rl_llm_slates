@@ -13,7 +13,7 @@ if __name__ == "__main__":
     for seed in tqdm(SEEDS):
 
         ALPHA = 0.0
-        RUN_BASE_PATH = Path(f"div_entropy_slateq_{ALPHA}_gamma_{seed}")
+        RUN_BASE_PATH = Path(f"slateq_{ALPHA}_{seed}")
         parser = argparse.ArgumentParser()
         config_path = base_path / RUN_BASE_PATH / Path("config.yaml")
         parser.add_argument(

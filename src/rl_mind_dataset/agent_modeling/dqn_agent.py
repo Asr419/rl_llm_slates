@@ -18,6 +18,7 @@ class Transition(NamedTuple):
     candidate_docs: torch.Tensor
     reward: torch.Tensor
     next_state: torch.Tensor
+    llm_slate: torch.Tensor
 
 
 class ReplayMemoryDataset(IterableDataset):
