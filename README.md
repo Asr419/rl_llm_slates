@@ -1,4 +1,4 @@
-# Session-Aware Slate Recommendation: Evaluating LLM-Enhanced Slate Recommendations with Real User Sessions
+# LLM-Enhanced Session-Aware Slate Recommendation
 
 
 In this work we explore the use of LLMs reasoning capabilities in slate generation for session based recommender systems. The idea is to retain the performance with LLM enhancement but to also keep the inference time as low as possible. Hence the work is inspired by assessing performance across accuracy, diversity and novelty compared using existing RL slate recommendation algos with LLMs on top of them.
